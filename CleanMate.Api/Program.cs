@@ -117,6 +117,10 @@ app.MapGet("/api/cleaners", async (AppDbContext db) =>
 });
 
 
+// Root endpoint to verify deployment
+app.MapGet("/", () => Results.Ok("✅ CleanMate API is running on Render!"));
+
+
 // --- /api/auth/register ---
 app.MapPost("/api/auth/register", async (AppDbContext db, RegisterDto dto) =>
 {
