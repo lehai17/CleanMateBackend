@@ -35,7 +35,11 @@ builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowFE", p => p
         .AllowAnyHeader().AllowAnyMethod()
-        .WithOrigins("http://localhost:5238", "http://localhost:3000"));
+        .WithOrigins(
+            "http://localhost:5238",
+            "http://localhost:3000",
+            "https://cleanmate-web.vercel.app"  
+        ));
 });
 
 // ===== JWT Auth =====
@@ -78,7 +82,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // ===== Swagger UI (Dev) =====
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI(); // /swagger
