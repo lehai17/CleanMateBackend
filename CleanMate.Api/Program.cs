@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Apis.Auth;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 // (BCrypt)
 using BCryptNet = BCrypt.Net.BCrypt;
 
@@ -28,7 +29,8 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 // ===== EF Core SQL Server =====
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
 
 // ===== CORS (FE dev 5173/3000) =====
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
