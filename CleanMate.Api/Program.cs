@@ -96,8 +96,10 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 }
 
 // ===== Middlewares =====
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("_myAllowSpecificOrigins");
+Console.WriteLine("✅ CORS policy '_myAllowSpecificOrigins' applied successfully!");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
