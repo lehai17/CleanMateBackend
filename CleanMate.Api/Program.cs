@@ -38,7 +38,7 @@ builder.Services.AddCors(opt =>
         .WithOrigins(
             "http://localhost:5238",
             "http://localhost:3000",
-            "https://cleanmate-web.vercel.app"  
+            "https://cleanmate-web.onrender.com"
         ));
 });
 
