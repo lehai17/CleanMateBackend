@@ -95,10 +95,12 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 }
 
 // ===== Middlewares =====
+app.UseRouting();
 app.UseHttpsRedirection();
 app.UseCors("_myAllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 
 // ===================== API =====================
 
