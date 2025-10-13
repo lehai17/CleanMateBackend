@@ -31,16 +31,22 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // ===== CORS (FE dev 5173/3000) =====
-builder.Services.AddCors(opt =>
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
 {
-    opt.AddPolicy("AllowFE", p => p
-        .AllowAnyHeader().AllowAnyMethod()
-        .WithOrigins(
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
+    {
+        policy.WithOrigins(
             "http://localhost:5238",
             "http://localhost:3000",
             "https://cleanmate-web.onrender.com"
-        ));
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
 });
+
 
 // ===== JWT Auth =====
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -90,7 +96,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 // ===== Middlewares =====
 app.UseHttpsRedirection();
-app.UseCors("AllowFE");
+app.UseCors("MyAllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 
