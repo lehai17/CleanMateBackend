@@ -96,7 +96,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 // ===== Middlewares =====
 app.UseHttpsRedirection();
-app.UseCors("MyAllowSpecificOrigins");
+app.UseCors("_myAllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 
