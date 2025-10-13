@@ -43,7 +43,8 @@ builder.Services.AddCors(options =>
             "https://cleanmate-web.onrender.com"
         )
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
@@ -95,12 +96,11 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 }
 
 // ===== Middlewares =====
-app.UseRouting();
 app.UseHttpsRedirection();
 app.UseCors("_myAllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+
 
 // ===================== API =====================
 
