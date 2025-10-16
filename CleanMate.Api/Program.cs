@@ -99,6 +99,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 // ===== Middlewares =====
 //app.UseHttpsRedirection();
+app.UseRouting();
 app.UseCors("_myAllowSpecificOrigins");
 Console.WriteLine("✅ CORS policy '_myAllowSpecificOrigins' applied successfully!");
 
