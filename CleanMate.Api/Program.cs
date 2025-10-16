@@ -546,4 +546,13 @@ if (app.Environment.IsDevelopment())
     }
 }
 
+// ===== Auto apply migrations on startup =====
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate(); // Tự động apply tất cả migrations
+    Console.WriteLine("✅ Database migrated successfully!");
+}
+
+
 app.Run();
