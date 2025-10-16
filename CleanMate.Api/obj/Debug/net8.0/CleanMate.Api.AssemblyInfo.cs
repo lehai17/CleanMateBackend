@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CleanMate.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e70afde91c16a1f49b252cf20e898f98d79cf5cd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+de9db25def065e74ebe85c18448d6fe819e0522d")]
 [assembly: System.Reflection.AssemblyProductAttribute("CleanMate.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CleanMate.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
