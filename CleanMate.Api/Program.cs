@@ -24,14 +24,12 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-
-// ===== Database Configuration (auto switch between PostgreSQL & SQL Server) =====
-// ===== Database Configuration (auto switch between PostgreSQL & SQL Server) =====
+// ===== Database Configuration (auto switch PostgreSQL / SQL Server) =====
 var connectionString = builder.Configuration.GetConnectionString("Default");
 
 if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
 {
-    // PostgreSQL
+    // ✅ PostgreSQL for Render
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString,
             npgsql => npgsql.MigrationsAssembly("CleanMate.Api")
@@ -40,22 +38,19 @@ if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
 }
 else
 {
-    // SQL Server
+    // ✅ SQL Server for local dev
     builder.Services.AddDbContext<AppDbContextSqlServer>(options =>
         options.UseSqlServer(connectionString,
             sql => sql.MigrationsAssembly("CleanMate.Api")
                       .MigrationsHistoryTable("__EFMigrationsHistory", "dbo")));
 
-    // Đăng ký alias: AppDbContext → AppDbContextSqlServer
+    // Alias cho AppDbContext
     builder.Services.AddScoped<AppDbContext, AppDbContextSqlServer>();
     Console.WriteLine("🟡 Using SQL Server (Local)");
 }
 
-
-
 Console.WriteLine($"🌐 Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine($"🔌 Connection: {connectionString}");
-
 
 // ===== CORS =====
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -73,7 +68,6 @@ builder.Services.AddCors(options =>
         .AllowCredentials();
     });
 });
-
 
 // ===== JWT Auth =====
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -109,33 +103,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// ✅ Add this to support controllers (Swagger + future MVC)
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-
-// ===== Swagger UI (Dev + Prod) =====
+// ===== Swagger UI =====
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-
-// ===== Middlewares =====
-app.UseHttpsRedirection();
+// ===== Middleware order =====
 app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
 Console.WriteLine("✅ CORS policy '_myAllowSpecificOrigins' applied successfully!");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ===== Map controllers (safe now) =====
 app.MapControllers();
 
+// ===================== API Endpoints =====================
 
-// ===================== API =====================
-
-// --- Cleaners: public list ---
+// --- Cleaners ---
 app.MapGet("/api/cleaners", async (AppDbContext db) =>
 {
     var list = await db.CleanerProfiles
@@ -158,8 +152,7 @@ app.MapGet("/api/cleaners", async (AppDbContext db) =>
 // Root endpoint
 app.MapGet("/", () => Results.Ok("✅ CleanMate API is running!"));
 
-
-// --- /api/auth/register ---
+// --- Register ---
 app.MapPost("/api/auth/register", async (AppDbContext db, RegisterDto dto) =>
 {
     if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
@@ -195,8 +188,7 @@ app.MapPost("/api/auth/register", async (AppDbContext db, RegisterDto dto) =>
     return Results.Ok(new { user.Id, user.FullName, user.Email, user.Role });
 });
 
-
-// --- /api/auth/login ---
+// --- Login ---
 app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
 {
     var email = dto.Email.Trim().ToLowerInvariant();
@@ -231,12 +223,9 @@ app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
     });
 });
 
-
-// --- /api/auth/google ---
+// --- Google Login ---
 app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
 {
-    Console.WriteLine("IdToken nhận được (prefix): " + (dto.IdToken?.Substring(0, Math.Min(20, dto.IdToken.Length)) ?? "null"));
-
     if (string.IsNullOrWhiteSpace(dto.IdToken))
         return Results.BadRequest("Missing idToken");
 
@@ -289,11 +278,11 @@ app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
     });
 });
 
-
-// --- /api/me ---
+// --- Me ---
 app.MapGet("/api/me", (ClaimsPrincipal user) =>
 {
-    var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+    var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
+              ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
     if (sub is null) return Results.Unauthorized();
     return Results.Ok(new
     {
@@ -304,8 +293,7 @@ app.MapGet("/api/me", (ClaimsPrincipal user) =>
     });
 }).RequireAuthorization();
 
-
-// --- /api/bookings ---
+// --- Bookings ---
 app.MapPost("/api/bookings", async (AppDbContext db, ClaimsPrincipal user, Booking booking) =>
 {
     var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
@@ -322,8 +310,7 @@ app.MapPost("/api/bookings", async (AppDbContext db, ClaimsPrincipal user, Booki
     return Results.Ok(new { booking.Id, booking.StartTime, booking.Price });
 }).RequireAuthorization();
 
-
-// --- /api/orders ---
+// --- Orders ---
 app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
 {
     var list = await db.Bookings
@@ -344,53 +331,22 @@ app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
     return Results.Ok(list);
 });
 
-
-// ===================== Seed DEV =====================
-if (app.Environment.IsDevelopment())
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    db.Database.EnsureCreated();
-
-    if (!db.Users.Any())
-    {
-        var u1 = new User { FullName = "Nguyen Van A", Email = "a@test.com", PasswordHash = BCryptNet.HashPassword("dev"), Role = UserRole.Cleaner };
-        var u2 = new User { FullName = "Tran Thi B", Email = "b@test.com", PasswordHash = BCryptNet.HashPassword("dev"), Role = UserRole.Cleaner };
-        db.Users.AddRange(u1, u2);
-        db.SaveChanges();
-
-        db.CleanerProfiles.AddRange(
-            new CleanerProfile
-            {
-                UserId = u1.Id,
-                Bio = "Chuyên dọn nhà",
-                HourlyRate = 120000m,
-                AvgRating = 4.6,
-                City = "Hà Nội",
-                AddressText = "Hồ Tân Xã"
-            },
-            new CleanerProfile
-            {
-                UserId = u2.Id,
-                Bio = "Chuyên giặt ủi",
-                HourlyRate = 100000m,
-                AvgRating = 4.4,
-                City = "Hà Nội",
-                AddressText = "Thôn 2"
-            }
-        );
-        db.SaveChanges();
-    }
-}
-
-
-// ===== Auto apply migrations =====
+// ===================== Auto Migration =====================
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    Console.WriteLine("✅ Database migrated successfully!");
+    var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+    if (env.IsProduction())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); // PostgreSQL
+        db.Database.Migrate();
+        Console.WriteLine("✅ PostgreSQL migrated successfully (Render)!");
+    }
+    else
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContextSqlServer>(); // local
+        db.Database.Migrate();
+        Console.WriteLine("✅ SQL Server migrated successfully (Local)!");
+    }
 }
 
 app.Run();
