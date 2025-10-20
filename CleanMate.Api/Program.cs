@@ -10,9 +10,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Google.Apis.Auth;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
-// (BCrypt)
 using BCryptNet = BCrypt.Net.BCrypt;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,14 +24,41 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// ===== EF Core SQL Server =====
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+// ===== Database Configuration (auto switch between PostgreSQL & SQL Server) =====
+// ===== Database Configuration (auto switch between PostgreSQL & SQL Server) =====
+var connectionString = builder.Configuration.GetConnectionString("Default");
+
+if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+{
+    // PostgreSQL
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString,
+            npgsql => npgsql.MigrationsAssembly("CleanMate.Api")
+                             .MigrationsHistoryTable("__EFMigrationsHistory", "public")));
+    Console.WriteLine("🟢 Using PostgreSQL (Render)");
+}
+else
+{
+    // SQL Server
+    builder.Services.AddDbContext<AppDbContextSqlServer>(options =>
+        options.UseSqlServer(connectionString,
+            sql => sql.MigrationsAssembly("CleanMate.Api")
+                      .MigrationsHistoryTable("__EFMigrationsHistory", "dbo")));
+
+    // Đăng ký alias: AppDbContext → AppDbContextSqlServer
+    builder.Services.AddScoped<AppDbContext, AppDbContextSqlServer>();
+    Console.WriteLine("🟡 Using SQL Server (Local)");
+}
 
 
-// ===== CORS (FE dev 5173/3000) =====
+
+Console.WriteLine($"🌐 Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"🔌 Connection: {connectionString}");
+
+
+// ===== CORS =====
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
@@ -84,27 +108,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
-
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// ===== Swagger UI (Dev) =====
+
+// ===== Swagger UI (Dev + Prod) =====
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(); // /swagger
+    app.UseSwaggerUI();
 }
 
+
 // ===== Middlewares =====
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseRouting();
-app.UseCors("_myAllowSpecificOrigins");
+app.UseCors(MyAllowSpecificOrigins);
 Console.WriteLine("✅ CORS policy '_myAllowSpecificOrigins' applied successfully!");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 
 
 // ===================== API =====================
@@ -129,9 +154,8 @@ app.MapGet("/api/cleaners", async (AppDbContext db) =>
     return Results.Ok(list);
 });
 
-
-// Root endpoint to verify deployment
-app.MapGet("/", () => Results.Ok("✅ CleanMate API is running on Render!"));
+// Root endpoint
+app.MapGet("/", () => Results.Ok("✅ CleanMate API is running!"));
 
 
 // --- /api/auth/register ---
@@ -170,27 +194,16 @@ app.MapPost("/api/auth/register", async (AppDbContext db, RegisterDto dto) =>
     return Results.Ok(new { user.Id, user.FullName, user.Email, user.Role });
 });
 
+
 // --- /api/auth/login ---
 app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
 {
     var email = dto.Email.Trim().ToLowerInvariant();
     var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    if (user is null)
-    {
-        Console.WriteLine($"❌ Không tìm thấy user: {email}");
-        return Results.Unauthorized();
-    }
-
-    // 🧩 Thêm các dòng debug ở đây
-    Console.WriteLine($"Login attempt: email={dto.Email}, pass={dto.Password}");
-    Console.WriteLine($"Hash in DB: {user.PasswordHash}");
-    Console.WriteLine($"Verify result: {BCryptNet.Verify(dto.Password, user.PasswordHash)}");
+    if (user is null) return Results.Unauthorized();
 
     if (!BCryptNet.Verify(dto.Password, user.PasswordHash))
-    {
-        Console.WriteLine("❌ Mật khẩu không khớp!");
         return Results.Unauthorized();
-    }
 
     var claims = new[]
     {
@@ -218,7 +231,7 @@ app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
 });
 
 
-//public record GoogleLoginDto(string idToken);
+// --- /api/auth/google ---
 app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
 {
     Console.WriteLine("IdToken nhận được (prefix): " + (dto.IdToken?.Substring(0, Math.Min(20, dto.IdToken.Length)) ?? "null"));
@@ -227,7 +240,6 @@ app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
         return Results.BadRequest("Missing idToken");
 
     using var client = new HttpClient();
-    // gọi Google để verify id_token
     var res = await client.GetStringAsync($"https://oauth2.googleapis.com/tokeninfo?id_token={dto.IdToken}");
     var info = JsonDocument.Parse(res).RootElement;
 
@@ -237,7 +249,6 @@ app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
     if (email is null)
         return Results.BadRequest("Invalid Google token");
 
-    // Tìm hoặc tạo user
     var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
     if (user == null)
     {
@@ -245,14 +256,13 @@ app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
         {
             FullName = name ?? "Google User",
             Email = email,
-            PasswordHash = "", // không cần mật khẩu
+            PasswordHash = "",
             Role = UserRole.Customer
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
     }
 
-    // Phát hành JWT
     var claims = new[]
     {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -279,94 +289,7 @@ app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
 });
 
 
-
-
-//app.MapPost("/api/auth/google", async (AppDbContext db, GoogleLoginDto dto) =>
-//{
-//    // DEBUG: in ra vài ký tự đầu để xác nhận client đang gửi gì
-//    Console.WriteLine("IdToken nhận được (prefix): " + (dto.IdToken?.Substring(0, Math.Min(20, dto.IdToken.Length)) ?? "null"));
-
-//    if (string.IsNullOrWhiteSpace(dto.IdToken))
-//        return Results.BadRequest("Missing idToken");
-
-//    try
-//    {
-//        // CHÚ Ý: dùng chính webClientId bạn cấu hình ở FE
-//        var validPayload = await GoogleJsonWebSignature.ValidateAsync(
-//            dto.IdToken,
-//            new GoogleJsonWebSignature.ValidationSettings
-//            {
-//                // phải trùng với client id bạn dùng ở FE (expoClientId/webClientId)
-//                Audience = new[] {
-//                    "322324177186-rio3tjbo9jv5vgb7cbre62mkt83tehkr.apps.googleusercontent.com"
-//                }
-//            });
-
-//        // DEBUG: log payload
-//        Console.WriteLine($"Google payload email={validPayload.Email}, name={validPayload.Name}, aud={validPayload.Audience}");
-
-//        var email = validPayload.Email;
-//        var name = validPayload.Name ?? $"{validPayload.GivenName} {validPayload.FamilyName}".Trim();
-
-//        if (string.IsNullOrEmpty(email))
-//            return Results.BadRequest("Invalid Google token: no email");
-
-//        // Tìm hoặc tạo user
-//        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-//        if (user == null)
-//        {
-//            user = new User
-//            {
-//                FullName = string.IsNullOrWhiteSpace(name) ? "Google User" : name,
-//                Email = email,
-//                PasswordHash = "",
-//                Role = UserRole.Customer
-//            };
-//            db.Users.Add(user);
-//            await db.SaveChangesAsync();
-//        }
-
-//        // Phát hành JWT
-//        var claims = new[]
-//        {
-//            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-//            new Claim(ClaimTypes.Role, user.Role.ToString()),
-//            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-//            new Claim("name", user.FullName)
-//        };
-
-//        var token = new JwtSecurityToken(
-//            issuer: jwtIssuer,
-//            audience: jwtAudience,
-//            claims: claims,
-//            expires: DateTime.UtcNow.AddDays(7),
-//            signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
-//        );
-
-//        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
-//        return Results.Ok(new
-//        {
-//            token = jwt,
-//            user = new { user.Id, user.FullName, user.Email, user.Role }
-//        });
-//    }
-//    catch (InvalidJwtException ex)
-//    {
-//        // DEBUG: lỗi xác thực token, in chi tiết
-//        Console.WriteLine("ValidateAsync failed: " + ex.Message);
-//        return Results.BadRequest("Invalid Google token: " + ex.Message);
-//    }
-//    catch (Exception ex)
-//    {
-//        Console.WriteLine("Unhandled exception at /api/auth/google: " + ex);
-//        return Results.StatusCode(500);
-//    }
-//});
-
-
-
-// --- /api/me (test token) ---
+// --- /api/me ---
 app.MapGet("/api/me", (ClaimsPrincipal user) =>
 {
     var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -380,14 +303,10 @@ app.MapGet("/api/me", (ClaimsPrincipal user) =>
     });
 }).RequireAuthorization();
 
+
+// --- /api/bookings ---
 app.MapPost("/api/bookings", async (AppDbContext db, ClaimsPrincipal user, Booking booking) =>
 {
-    Console.WriteLine("==== JWT Claims ====");
-    foreach (var c in user.Claims)
-    {
-        Console.WriteLine($"{c.Type} = {c.Value}");
-    }
-
     var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
              ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -403,6 +322,7 @@ app.MapPost("/api/bookings", async (AppDbContext db, ClaimsPrincipal user, Booki
 }).RequireAuthorization();
 
 
+// --- /api/orders ---
 app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
 {
     var list = await db.Bookings
@@ -421,85 +341,6 @@ app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
         .ToListAsync();
 
     return Results.Ok(list);
-});
-
-// /api/cleaner/jobs
-app.MapGet("/api/cleaner/jobs", async (AppDbContext db, ClaimsPrincipal user) =>
-{
-    Console.WriteLine("==== [DEBUG] /api/cleaner/jobs ====");
-
-    // Log tất cả các claims có trong JWT
-    foreach (var c in user.Claims)
-    {
-        Console.WriteLine($"Claim: {c.Type} = {c.Value}");
-    }
-
-    // Thử lấy sub (user id)
-    var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
-              ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-    if (sub is null)
-    {
-        Console.WriteLine("❌ sub is null => Unauthorized (token không có claim 'sub' hoặc 'nameidentifier')");
-        return Results.Unauthorized();
-    }
-
-    Console.WriteLine($"✅ Extracted cleanerUserId = {sub}");
-
-    var cleanerUserId = int.Parse(sub);
-
-    Console.WriteLine($"🧹 Đang truy vấn công việc của Cleaner UserId = {cleanerUserId}");
-
-    var jobs = await db.Bookings
-        .Where(b => b.CleanerId == cleanerUserId)
-        .OrderByDescending(b => b.StartTime)
-        .Select(b => new
-        {
-            b.Id,
-            b.StartTime,
-            b.Price,
-            b.Address,
-            b.PaymentMethod,
-            b.DurationHours
-        })
-        .ToListAsync();
-
-    Console.WriteLine($"📦 Số công việc tìm thấy: {jobs.Count}");
-
-    return Results.Ok(jobs);
-}).RequireAuthorization();
-
-
-
-
-
-// PUT: cập nhật địa chỉ, ghi chú, phương thức thanh toán...
-app.MapPut("/api/orders/{id}", async (int id, AppDbContext db, Booking input) =>
-{
-    var booking = await db.Bookings.FindAsync(id);
-    if (booking == null) return Results.NotFound();
-
-    booking.Address = input.Address;
-    booking.Notes = input.Notes;
-    booking.PaymentMethod = input.PaymentMethod;
-    booking.Address = input.Address;
-    booking.StartTime = input.StartTime;
-    booking.DurationHours = input.DurationHours;
-    booking.Price = input.Price;
-
-    await db.SaveChangesAsync();
-    return Results.Ok(booking);
-});
-
-// DELETE
-app.MapDelete("/api/orders/{id}", async (int id, AppDbContext db) =>
-{
-    var booking = await db.Bookings.FindAsync(id);
-    if (booking == null) return Results.NotFound();
-
-    db.Bookings.Remove(booking);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
 });
 
 
@@ -526,9 +367,7 @@ if (app.Environment.IsDevelopment())
                 HourlyRate = 120000m,
                 AvgRating = 4.6,
                 City = "Hà Nội",
-                AddressText = "Hồ Tân Xã",
-                Latitude = 21.0278,
-                Longitude = 105.8342
+                AddressText = "Hồ Tân Xã"
             },
             new CleanerProfile
             {
@@ -537,22 +376,20 @@ if (app.Environment.IsDevelopment())
                 HourlyRate = 100000m,
                 AvgRating = 4.4,
                 City = "Hà Nội",
-                AddressText = "Thôn 2",
-                Latitude = 10.7769,
-                Longitude = 106.7009
+                AddressText = "Thôn 2"
             }
         );
         db.SaveChanges();
     }
 }
 
-// ===== Auto apply migrations on startup =====
+
+// ===== Auto apply migrations =====
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); // Tự động apply tất cả migrations
+    db.Database.Migrate();
     Console.WriteLine("✅ Database migrated successfully!");
 }
-
 
 app.Run();
