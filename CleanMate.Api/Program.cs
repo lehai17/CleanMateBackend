@@ -97,6 +97,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnAuthenticationFailed = ctx =>
             {
                 Console.WriteLine("JWT failed: " + ctx.Exception.Message);
+
+                Console.WriteLine("Failed Authorization Header: " + ctx.Request.Headers["Authorization"].ToString());
                 return Task.CompletedTask;
             }
         };
@@ -193,10 +195,17 @@ app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
 {
     var email = dto.Email.Trim().ToLowerInvariant();
     var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    if (user is null) return Results.Unauthorized();
+    if (user is null)
+    {
+        Console.WriteLine($"Login failed: User with email {email} not found.");
+        return Results.Unauthorized();
+    }
 
     if (!BCryptNet.Verify(dto.Password, user.PasswordHash))
+    {
+        Console.WriteLine($"Login failed: Incorrect password for user {email}.");
         return Results.Unauthorized();
+    }
 
     var claims = new[]
     {
@@ -215,6 +224,8 @@ app.MapPost("/api/auth/login", async (AppDbContext db, LoginDto dto) =>
     );
 
     var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+    Console.WriteLine($"User {email} successfully logged in.");
 
     return Results.Ok(new
     {
@@ -331,22 +342,63 @@ app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
     return Results.Ok(list);
 });
 
+// --- Delete Order ---
+// --- Delete Order ---
+app.MapDelete("/api/orders/{id}", async (AppDbContext db, int id) =>
+{
+    Console.WriteLine($"🟡 [DELETE] Request received for Order ID = {id}");
+
+    try
+    {
+        // Kiểm tra tồn tại
+        var booking = await db.Bookings.FindAsync(id);
+        if (booking == null)
+        {
+            Console.WriteLine($"❌ [DELETE] Booking with ID {id} not found.");
+            return Results.NotFound(new { message = $"Booking ID {id} not found" });
+        }
+
+        // Xóa bản ghi
+        db.Bookings.Remove(booking);
+        await db.SaveChangesAsync();
+
+        Console.WriteLine($"✅ [DELETE] Booking ID {id} deleted successfully at {DateTime.Now:HH:mm:ss}");
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"🔥 [ERROR] Exception while deleting booking ID {id}: {ex.Message}");
+        Console.WriteLine(ex.StackTrace);
+        return Results.Problem($"Internal server error while deleting booking {id}: {ex.Message}");
+    }
+}).RequireAuthorization();
+
+
+
 // ===================== Auto Migration =====================
 using (var scope = app.Services.CreateScope())
 {
     var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-    if (env.IsProduction())
+    try
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); // PostgreSQL
-        db.Database.Migrate();
-        Console.WriteLine("✅ PostgreSQL migrated successfully (Render)!");
+        if (env.IsProduction())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>(); // PostgreSQL
+            db.Database.Migrate();
+            Console.WriteLine("✅ PostgreSQL migrated successfully (Render)!"); // Log migration thành công
+        }
+        else
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContextSqlServer>(); // SQL Server Local
+            db.Database.Migrate();
+            Console.WriteLine("✅ SQL Server migrated successfully (Local)!"); // Log migration thành công
+        }
     }
-    else
+    catch (Exception ex)
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContextSqlServer>(); // local
-        db.Database.Migrate();
-        Console.WriteLine("✅ SQL Server migrated successfully (Local)!");
+        Console.WriteLine("Error while connecting to database: " + ex.Message); // Log lỗi nếu gặp sự cố kết nối
     }
 }
+
 
 app.Run();
