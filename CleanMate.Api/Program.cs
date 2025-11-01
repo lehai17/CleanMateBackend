@@ -58,11 +58,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5238",
-            "http://localhost:3000",
-            "https://cleanmate-web.onrender.com"
-        )
+        //policy.WithOrigins(
+        //    "http://localhost:5238",
+        //    "http://localhost:3000",
+        //    "https://cleanmate-web.onrender.com"
+        //)
+
+        policy
+        .SetIsOriginAllowed(_ => true)
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials();
