@@ -22,7 +22,7 @@ namespace CleanMate.CleanerWeb.Controllers
 
             var cleaner = await _db.CleanerProfiles
                 .Include(c => c.User)
-                .FirstOrDefaultAsync(c => c.UserId == cleanerId);
+                .FirstOrDefaultAsync(c => c.Id == cleanerId);
 
             if (cleaner == null) return NotFound();
 
@@ -44,30 +44,31 @@ namespace CleanMate.CleanerWeb.Controllers
             var cleanerId = HttpContext.Session.GetInt32("CleanerId");
             if (cleanerId == null) return RedirectToAction("Login", "Auth");
 
-            var user = await _db.Users.Include(u => u.CleanerProfile)
-                                      .FirstOrDefaultAsync(u => u.Id == cleanerId);
-            if (user == null) return NotFound();
+            // ✅ Lấy CleanerProfile theo Id (chứ không phải User)
+            var cleaner = await _db.CleanerProfiles
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == cleanerId);
+
+            if (cleaner == null) return NotFound();
 
             // ✅ Cập nhật thông tin
-            user.FullName = model.FullName;
-            user.PhoneNumber = model.PhoneNumber;
-            user.CleanerProfile!.Bio = model.Bio;
-            user.CleanerProfile.AddressText = model.Address;
+            cleaner.User.FullName = model.FullName;
+            cleaner.User.PhoneNumber = model.PhoneNumber;
+            cleaner.Bio = model.Bio;
+            cleaner.AddressText = model.Address;
 
             await _db.SaveChangesAsync();
 
-            await _db.Entry(user).Reference(u => u.CleanerProfile).LoadAsync();
-
             // ✅ Cập nhật lại session (để Dashboard đọc được bản mới)
-            HttpContext.Session.SetString("FullName", user.FullName);
-            HttpContext.Session.SetString("PhoneNumber", user.PhoneNumber ?? "");
-            HttpContext.Session.SetString("Address", user.CleanerProfile.AddressText ?? "");
-            HttpContext.Session.SetString("Bio", user.CleanerProfile.Bio ?? "");
+            HttpContext.Session.SetString("FullName", cleaner.User.FullName);
+            HttpContext.Session.SetString("PhoneNumber", cleaner.User.PhoneNumber ?? "");
+            HttpContext.Session.SetString("Address", cleaner.AddressText ?? "");
+            HttpContext.Session.SetString("Bio", cleaner.Bio ?? "");
 
             TempData["Message"] = "Profile updated successfully!";
             return RedirectToAction("Index", "Dashboard");
-
         }
+
 
     }
 }

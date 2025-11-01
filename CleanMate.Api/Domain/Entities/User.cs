@@ -10,5 +10,7 @@ public class User
     public string PasswordHash { get; set; } = "";
     public UserRole Role { get; set; } = UserRole.Customer;
 
+    public string? PhoneNumber { get; set; }
+
     public CleanerProfile? CleanerProfile { get; set; }
 }

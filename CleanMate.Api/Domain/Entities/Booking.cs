@@ -19,4 +19,7 @@ public class Booking
     // Navigation
     public User? User { get; set; } // Customer
     public CleanerProfile? Cleaner { get; set; } // Cleaner
+
+    public string Status { get; set; } = "Pending";
+
 }

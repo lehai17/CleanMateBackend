@@ -15,7 +15,7 @@ namespace CleanMate.CleanerWeb.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var userId = HttpContext.Session.GetInt32("CleanerId");
+            var userId = HttpContext.Session.GetInt32("UserId");
 
             var role = HttpContext.Session.GetString("Role");
 
@@ -30,8 +30,7 @@ namespace CleanMate.CleanerWeb.Controllers
 
             if (cleaner == null)
             {
-                ViewBag.Error = "Không tìm thấy hồ sơ Cleaner.";
-                return View();
+                return Content("❌ Không tìm thấy hồ sơ Cleaner trong hệ thống.");
             }
 
             return View(cleaner);

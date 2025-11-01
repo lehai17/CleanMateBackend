@@ -4,6 +4,7 @@ using CleanMate.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 {
     [DbContext(typeof(AppDbContextSqlServer))]
-    partial class AppDbContextSqlServerModelSnapshot : ModelSnapshot
+    [Migration("20251031190012_AddBookingStatus")]
+    partial class AddBookingStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -133,9 +136,6 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Role")

@@ -321,6 +321,64 @@ app.MapPost("/api/bookings", async (AppDbContext db, ClaimsPrincipal user, Booki
     return Results.Ok(new { booking.Id, booking.StartTime, booking.Price });
 }).RequireAuthorization();
 
+app.MapPut("/api/bookings/{id}/accept", async (IServiceProvider sp, int id, int cleanerId) =>
+{
+    var db = sp.GetRequiredService<AppDbContext>();
+    Console.WriteLine($"📩 Accept booking called: id={id}, cleaner={cleanerId}");
+
+    var booking = await db.Bookings.FindAsync(id);
+    if (booking == null)
+    {
+        Console.WriteLine($"❌ Booking {id} not found in database");
+        return Results.NotFound(new { message = $"Booking {id} not found." });
+    }
+
+    if (booking.Status != "Pending")
+        return Results.BadRequest(new { message = "Booking is already accepted or completed." });
+
+    booking.CleanerId = cleanerId;
+    booking.Status = "Accepted";
+    await db.SaveChangesAsync();
+
+    Console.WriteLine($"✅ Cleaner {cleanerId} accepted booking {id}");
+    return Results.Ok(new { message = "Booking accepted successfully!" });
+});
+
+
+// --- Update Cleaner Profile ---
+app.MapPut("/api/cleaner/profile", async (AppDbContext db, ClaimsPrincipal user, CleanerProfileUpdateDto dto) =>
+{
+    var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+    if (sub == null) return Results.Unauthorized();
+
+    var userId = int.Parse(sub);
+    var cleanerProfile = await db.CleanerProfiles.Include(c => c.User)
+        .FirstOrDefaultAsync(c => c.UserId == userId);
+
+    if (cleanerProfile == null)
+        return Results.NotFound(new { message = "Cleaner profile not found." });
+
+    // Update basic fields
+    cleanerProfile.User.FullName = dto.FullName;
+    cleanerProfile.User.PhoneNumber = dto.PhoneNumber;
+    cleanerProfile.AddressText = dto.AddressText;
+    cleanerProfile.Bio = dto.Bio;
+
+    await db.SaveChangesAsync();
+
+    Console.WriteLine($"🧹 Cleaner {userId} updated profile at {DateTime.Now:HH:mm:ss}");
+    return Results.Ok(new
+    {
+        message = "Profile updated successfully!",
+        cleanerProfile.User.FullName,
+        cleanerProfile.User.PhoneNumber,
+        cleanerProfile.AddressText,
+        cleanerProfile.Bio
+    });
+}).RequireAuthorization();
+
+
+
 // --- Orders ---
 app.MapGet("/api/orders", async (AppDbContext db, int userId) =>
 {
@@ -372,6 +430,81 @@ app.MapDelete("/api/orders/{id}", async (AppDbContext db, int id) =>
         return Results.Problem($"Internal server error while deleting booking {id}: {ex.Message}");
     }
 }).RequireAuthorization();
+
+
+
+
+// --- MoMo Payment ---
+// POST /api/payment/momo
+app.MapPost("/api/payment/momo", async (HttpContext context) =>
+{
+    try
+    {
+        var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        var json = JsonDocument.Parse(body);
+        var amount = json.RootElement.GetProperty("amount").GetDecimal();
+        var orderInfo = json.RootElement.GetProperty("orderInfo").GetString() ?? "Thanh toán dịch vụ CleanMate";
+
+        // 🧩 Thông tin MoMo sandbox
+        const string endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
+        const string partnerCode = "MOMOXXXX2024";  // 👉 thay bằng PartnerCode của bạn
+        const string accessKey = "your_access_key"; // 👉 thay bằng AccessKey
+        const string secretKey = "your_secret_key"; // 👉 thay bằng SecretKey
+
+        var orderId = DateTime.Now.Ticks.ToString();
+        var requestId = Guid.NewGuid().ToString();
+        var redirectUrl = "http://localhost:3000/payment-success";
+        var ipnUrl = "http://localhost:5238/api/payment/momo-callback";
+
+        // Chuẩn bị chuỗi ký
+        var rawSignature =
+            $"accessKey={accessKey}&amount={amount}&extraData=&ipnUrl={ipnUrl}&orderId={orderId}&orderInfo={orderInfo}&partnerCode={partnerCode}&redirectUrl={redirectUrl}&requestId={requestId}&requestType=captureWallet";
+
+        // Ký SHA256
+        using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
+        var signature = BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(rawSignature))).Replace("-", "").ToLower();
+
+        // Gửi body tới MoMo
+        var requestBody = new
+        {
+            partnerCode,
+            partnerName = "CleanMate",
+            storeId = "CleanMateStore",
+            requestId,
+            amount,
+            orderId,
+            orderInfo,
+            redirectUrl,
+            ipnUrl,
+            lang = "vi",
+            requestType = "captureWallet",
+            signature
+        };
+
+        using var client = new HttpClient();
+        var res = await client.PostAsync(endpoint,
+            new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json"));
+
+        var responseContent = await res.Content.ReadAsStringAsync();
+        Console.WriteLine("💰 MoMo response: " + responseContent);
+        return Results.Content(responseContent, "application/json");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("🔥 MoMo Payment Error: " + ex.Message);
+        return Results.Problem("Internal Server Error: " + ex.Message);
+    }
+});
+
+// MoMo callback (notify thanh toán thành công)
+app.MapPost("/api/payment/momo-callback", async (HttpContext context) =>
+{
+    var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+    Console.WriteLine("📩 [MoMo Callback] " + body);
+
+    return Results.Ok(new { message = "Callback received" });
+});
+
 
 
 

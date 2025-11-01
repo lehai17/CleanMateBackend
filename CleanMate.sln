@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanMate.Api", "CleanMate.Api\CleanMate.Api.csproj", "{1AEAE3F6-3371-4619-91A5-7D01AD6CEA89}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanMate.CleanerWeb", "CleanMate.CleanerWeb\CleanMate.CleanerWeb.csproj", "{2686772C-87D7-4442-82AF-C45E8414215F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,8 +29,23 @@ Global
 		{1AEAE3F6-3371-4619-91A5-7D01AD6CEA89}.Release|x64.Build.0 = Release|Any CPU
 		{1AEAE3F6-3371-4619-91A5-7D01AD6CEA89}.Release|x86.ActiveCfg = Release|Any CPU
 		{1AEAE3F6-3371-4619-91A5-7D01AD6CEA89}.Release|x86.Build.0 = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|x64.Build.0 = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Debug|x86.Build.0 = Debug|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|x64.ActiveCfg = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|x64.Build.0 = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|x86.ActiveCfg = Release|Any CPU
+		{2686772C-87D7-4442-82AF-C45E8414215F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6A9ACCDA-F77E-4C8D-A92E-2246A11F89D5}
 	EndGlobalSection
 EndGlobal
