@@ -9,10 +9,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
+namespace CleanMate.Api.Migrations.Postgres
 {
     [DbContext(typeof(AppDbContextSqlServer))]
-    [Migration("20251101162522_AddPhoneNumberToUser_Postgres")]
+    [Migration("20251101164439_AddPhoneNumberToUser_Postgres")]
     partial class AddPhoneNumberToUser_Postgres
     {
         /// <inheritdoc />

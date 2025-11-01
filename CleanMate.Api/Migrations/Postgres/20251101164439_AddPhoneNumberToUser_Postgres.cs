@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
+namespace CleanMate.Api.Migrations.Postgres
 {
     /// <inheritdoc />
     public partial class AddPhoneNumberToUser_Postgres : Migration
