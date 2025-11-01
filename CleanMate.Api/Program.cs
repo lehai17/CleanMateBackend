@@ -533,5 +533,20 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        db.Database.Migrate();
+        Console.WriteLine("✅ PostgreSQL database migrated successfully on Render!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Migration failed: {ex.Message}");
+    }
+}
+
+
 
 app.Run();
