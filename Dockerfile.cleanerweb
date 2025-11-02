@@ -9,7 +9,8 @@ COPY . .
 RUN dotnet restore CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj
 
 # Build release
-RUN dotnet publish CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj -c Release -o /app/publish
+RUN dotnet publish CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj -c Release -o /app/publish --no-restore --no-dependencies
+
 
 # ============ Runtime Stage ============
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
