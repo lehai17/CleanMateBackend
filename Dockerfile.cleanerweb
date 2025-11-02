@@ -1,24 +1,16 @@
-# syntax=docker/dockerfile:1
-
-# -------- Build stage --------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy web project
 COPY CleanMate.CleanerWeb/*.csproj CleanMate.CleanerWeb/
 RUN dotnet restore CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj
 
-# Copy code của CleanerWeb
 COPY CleanMate.CleanerWeb/ CleanMate.CleanerWeb/
-
-# ✅ Copy thêm thư mục cần thiết từ API (cho AppDbContext và Entities)
 COPY CleanMate.Api/Domain CleanMate.Api/Domain
 COPY CleanMate.Api/Infrastructure CleanMate.Api/Infrastructure
 
 WORKDIR /src/CleanMate.CleanerWeb
 RUN dotnet publish -c Release -o /app/publish --no-restore --no-dependencies
 
-# -------- Runtime stage --------
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
