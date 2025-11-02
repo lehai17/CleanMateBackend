@@ -1,15 +1,9 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-
-COPY CleanMate.CleanerWeb/*.csproj CleanMate.CleanerWeb/
-RUN dotnet restore CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj
-
+# Copy đúng thư mục web
 COPY CleanMate.CleanerWeb/ CleanMate.CleanerWeb/
+
+# ✅ Copy thêm thư mục dùng chung (Models, DataContext,...)
+COPY CleanMate.Api/Models CleanMate.Api/Models
+COPY CleanMate.Api/Data CleanMate.Api/Data
 
 WORKDIR /src/CleanMate.CleanerWeb
 RUN dotnet publish -c Release -o /app/publish --no-restore --no-dependencies
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-WORKDIR /app
-COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "CleanMate.CleanerWeb.dll"]
