@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CleanMate.Api\CleanMate.Api.csproj" />
+    <!-- <ProjectReference Include="..\CleanMate.Api\CleanMate.Api.csproj" /> -->
   </ItemGroup>
 
 </Project>
