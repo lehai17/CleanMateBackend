@@ -1,0 +1,81 @@
+﻿@model IEnumerable<CleanMate.CleanerWeb.Models.BookingViewModel>
+
+@{
+    ViewData["Title"] = "My Bookings";
+    Layout = "_Layout";
+    // var bookings = ViewBag.Bookings as IEnumerable<dynamic>;
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4 text-center"> My Assigned Bookings</h3>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-info text-center">@TempData["Message"]</div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info text-center">No bookings assigned yet.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped shadow-sm align-middle">
+                <thead class="table-primary">
+                    <tr class="text-center">
+                        <th>Order Code</th>
+                        <th>Customer</th>
+                        <th>Start Time</th>
+                        <th>Duration</th>
+                        <th>Price (VND)</th>
+                        <th>Address</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model)
+                    {
+                        <tr>
+                            <td class="text-center fw-bold">@b.OrderCode</td>
+                            <td>@b.CustomerName</td>
+                            <td>@b.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-center">@b.DurationHours h</td>
+                            <td class="text-end">@b.Price.ToString("N0")</td>
+                            <td>@b.Address</td>
+                            <td>@b.PaymentMethod</td>
+                            <td class="text-center">
+                                @if (b.Status == "Accepted")
+                                {
+                                    <span class="badge bg-success">Accepted</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@b.Status</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (b.Status == "Pending")
+                                {
+                                    <form asp-action="Accept" method="post">
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            Nhận đơn
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+</div>

@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY CleanMate.CleanerWeb/*.csproj CleanMate.CleanerWeb/
+RUN dotnet restore CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj
+
+COPY CleanMate.CleanerWeb/ CleanMate.CleanerWeb/
+COPY CleanMate.Api/Domain CleanMate.Api/Domain
+COPY CleanMate.Api/Infrastructure CleanMate.Api/Infrastructure
+
+WORKDIR /src/CleanMate.CleanerWeb
+RUN dotnet publish -c Release -o /app/publish --no-restore --no-dependencies
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "CleanMate.CleanerWeb.dll"]

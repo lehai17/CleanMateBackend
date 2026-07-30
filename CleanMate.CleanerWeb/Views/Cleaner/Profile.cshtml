@@ -1,0 +1,37 @@
+﻿@model CleanMate.CleanerWeb.Models.ProfileViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4">✏️ Edit Profile</h3>
+
+    <form asp-action="UpdateProfile" method="post" class="shadow p-4 rounded bg-light">
+        <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input asp-for="FullName" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input asp-for="PhoneNumber" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <input asp-for="Address" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Bio</label>
+            <textarea asp-for="Bio" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+    </form>
+
+    <div class="text-center mt-3">
+        <a asp-action="Index" asp-controller="Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
