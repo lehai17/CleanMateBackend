@@ -30,7 +30,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CurrentUserService>();
         services.AddScoped<AuthService>();
         services.AddSingleton<JwtTokenService>();
-        services.AddScoped<MomoPaymentService>();
         services.AddControllers();
 
         return services;

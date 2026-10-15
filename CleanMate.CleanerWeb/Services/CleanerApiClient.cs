@@ -5,6 +5,7 @@ namespace CleanMate.CleanerWeb.Services;
 
 public class CleanerApiClient(HttpClient client, IHttpContextAccessor accessor)
 {
+    public string? LastJobError { get; private set; }
     public async Task<ApiAuth?> AuthenticateAsync(string path, object payload)
     {
         using var response = await client.PostAsJsonAsync(path, payload);
@@ -31,12 +32,20 @@ public class CleanerApiClient(HttpClient client, IHttpContextAccessor accessor)
 
     private async Task<bool> SendJobActionAsync(int id, string action)
     {
+        LastJobError = null;
         using var request = Authorized(HttpMethod.Put, $"api/cleaner/jobs/{id}/{action}");
         using var response = await client.SendAsync(request);
-        if (response.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound) return false;
+        if (response.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound)
+        {
+            try { LastJobError = (await response.Content.ReadFromJsonAsync<JobError>())?.Message; }
+            catch (System.Text.Json.JsonException) { /* A missing booking can have an empty response. */ }
+            return false;
+        }
         response.EnsureSuccessStatusCode();
         return true;
     }
+
+    private record JobError(string? Message);
 
     public async Task UpdateProfileAsync(object payload)
     {

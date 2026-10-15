@@ -40,8 +40,26 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CustomerConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CustomerRating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerReview")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("DurationHours")
                         .HasColumnType("int");
@@ -132,10 +150,22 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("BankAccountName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("BankTransactionReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<int>("BookingId")
                         .HasColumnType("int");
 
-                    b.Property<int>("CollectedByCleanerId")
+                    b.Property<int?>("CollectedByCleanerId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -146,8 +176,30 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
-                    b.Property<DateTime>("PaidAt")
+                    b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PayOsLinkId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long?>("PayOsOrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PayUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("ProviderEnvironment")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("ProviderPartnerCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("ProviderTransactionId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -158,6 +210,22 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 
                     b.HasIndex("BookingId")
                         .IsUnique();
+
+                    b.HasIndex("PayOsLinkId")
+                        .IsUnique()
+                        .HasFilter("[PayOsLinkId] IS NOT NULL");
+
+                    b.HasIndex("PayOsOrderCode")
+                        .IsUnique()
+                        .HasFilter("[PayOsOrderCode] IS NOT NULL");
+
+                    b.HasIndex("ProviderEnvironment", "ProviderTransactionId")
+                        .IsUnique()
+                        .HasFilter("[ProviderEnvironment] IS NOT NULL AND [ProviderTransactionId] IS NOT NULL");
+
+                    b.HasIndex("ProviderPartnerCode", "BankTransactionReference")
+                        .IsUnique()
+                        .HasFilter("[ProviderPartnerCode] IS NOT NULL AND [BankTransactionReference] IS NOT NULL");
 
                     b.ToTable("Payments");
                 });
