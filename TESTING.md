@@ -1,6 +1,6 @@
 # Backend and system tests
 
-Verified on 15 October 2026: all 27 backend tests passed, including a fresh SQL
+Verified on 15 October 2026: all 29 backend tests passed, including a fresh SQL
 Server migration. Backend build completed with zero warnings and zero errors.
 The companion frontend Playwright suite passed all 14 desktop/mobile browser cases.
 
@@ -70,3 +70,24 @@ until a real transition occurs; no historical times are fabricated.
 The React web, native mobile job list/calendar and MVC portal expose the next
 permitted action and reload actual server state after a command or conflict.
 Job completion records work progress; payment processing remains a separate step.
+
+## Cash collection after completion
+
+`PUT /api/cleaner/jobs/{id}/cash-payment` lets only the assigned cleaner confirm
+cash actually received for a completed cash booking. The amount comes from the
+server booking price; client-supplied amounts, collector IDs and times are ignored.
+The response contains the receipt ID, amount, collector ID and server UTC time.
+
+`Payments.BookingId` is unique. Repeated or concurrent confirmations return the
+same receipt without changing the original collection time. Receipts cannot be
+edited or deleted through the API. Order and job responses expose `paymentStatus`
+(`Unpaid` or `Paid`) and nullable `paidAt`; completing work alone does not mark it
+paid. Existing bookings start unpaid; no historical receipt is fabricated.
+
+SQL Server and PostgreSQL migrations add the Payments table without modifying
+existing bookings. Tests verify authorization, timing, server amounts, stable
+replays and six concurrent confirmations. SQL Server migrations run against the
+isolated test database; PostgreSQL is checked through its model and generated SQL.
+The React web, MVC portal and native app ask for explicit confirmation of cash
+received and display the server payment state. MoMo remains disabled and has not
+been integrated or verified against a live provider.

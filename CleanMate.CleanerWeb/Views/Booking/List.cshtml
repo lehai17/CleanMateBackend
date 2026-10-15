@@ -45,7 +45,14 @@
                             <td class="text-center">@b.DurationHours h</td>
                             <td class="text-end">@b.Price.ToString("N0")</td>
                             <td>@b.Address</td>
-                            <td>@b.PaymentMethod</td>
+                            <td>
+                                <div>@b.PaymentMethod</div>
+                                <div>@(b.PaymentStatus == "Paid" ? "Đã thanh toán" : "Chưa thanh toán")</div>
+                                @if (b.PaidAt.HasValue)
+                                {
+                                    <small>Thu tiền: @b.PaidAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
+                                }
+                            </td>
                             <td class="text-center">
                                 @if (b.Status == "Accepted")
                                 {
@@ -76,9 +83,12 @@
                                         </button>
                                     </form>
                                 }
-                                else
+                                else if (b.Status == "Completed" && b.PaymentStatus != "Paid" && b.PaymentMethod == "cash")
                                 {
-                                    <span>-</span>
+                                    <form asp-action="CashPayment" method="post" onsubmit="return confirm('Đã nhận đủ tiền mặt cho đơn này?');">
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success">Xác nhận đã nhận tiền mặt</button>
+                                    </form>
                                 }
                             </td>
                         </tr>

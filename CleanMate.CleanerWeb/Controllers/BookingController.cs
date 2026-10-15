@@ -34,4 +34,12 @@ public class BookingController(CleanerApiClient api) : Controller
         TempData["Message"] = await api.CompleteAsync(id) ? "Đã hoàn thành công việc." : "Không thể hoàn thành: trạng thái đơn đã thay đổi.";
         return RedirectToAction("List");
     }
+
+    [HttpPost]
+    public async Task<IActionResult> CashPayment(int id)
+    {
+        TempData["Message"] = await api.CashPaymentAsync(id)
+            ? "Đã ghi nhận thanh toán tiền mặt." : "Chỉ xác nhận tiền mặt sau khi hoàn thành công việc.";
+        return RedirectToAction("List");
+    }
 }

@@ -122,6 +122,46 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.ToTable("CleanerProfiles");
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CollectedByCleanerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -185,6 +225,22 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.Payment", b =>
+                {
+                    b.HasOne("Booking", "Booking")
+                        .WithOne("Payment")
+                        .HasForeignKey("CleanMate.Api.Domain.Entities.Payment", "BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("Booking", b =>
+                {
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.User", b =>

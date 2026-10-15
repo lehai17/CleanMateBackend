@@ -18,7 +18,10 @@ public static class CleanerJobEndpoints
                     b.UserId != cleaner.UserId && b.StartTime > DateTime.UtcNow)
                 .OrderBy(b => b.StartTime).Select(b => new { b.Id, customerName = b.User!.FullName,
                     customerPhone = b.User.PhoneNumber, b.StartTime, b.DurationHours, b.Price,
-                    b.Address, b.PaymentMethod, b.Notes, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
+                    b.Address, b.PaymentMethod,
+                    paymentStatus = b.Payment == null ? "Unpaid" : b.Payment.Status,
+                    paidAt = b.Payment == null ? (DateTime?)null : b.Payment.PaidAt,
+                    b.Notes, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
         });
         group.MapGet("/mine", async (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal) =>
         {
@@ -27,9 +30,13 @@ public static class CleanerJobEndpoints
             return Results.Ok(await db.Bookings.Where(b => b.CleanerId == cleaner.Id)
                 .OrderByDescending(b => b.CreatedAt).Select(b => new { b.Id, customerName = b.User!.FullName,
                     customerPhone = b.User.PhoneNumber, b.StartTime, b.DurationHours, b.Price,
-                    b.Address, b.PaymentMethod, b.Notes, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
+                    b.Address, b.PaymentMethod,
+                    paymentStatus = b.Payment == null ? "Unpaid" : b.Payment.Status,
+                    paidAt = b.Payment == null ? (DateTime?)null : b.Payment.PaidAt,
+                    b.Notes, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
         });
         group.MapPut("/{id:int}/accept", AcceptAsync);
+        group.MapPut("/{id:int}/cash-payment", CashPaymentEndpoints.ConfirmAsync);
         group.MapPut("/{id:int}/start", (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal, int id) =>
             TransitionAsync(db, users, principal, id, BookingStatuses.Accepted, BookingStatuses.InProgress));
         group.MapPut("/{id:int}/complete", (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal, int id) =>

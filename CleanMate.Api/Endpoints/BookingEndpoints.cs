@@ -36,7 +36,10 @@ public static class BookingEndpoints
             return Results.Ok(await db.Bookings.Where(b => b.UserId == userId.Value)
                 .OrderByDescending(b => b.CreatedAt)
                 .Select(b => new { b.Id, orderCode = "CM" + b.Id, date = b.StartTime,
-                    b.Price, b.Address, b.PaymentMethod, b.CreatedAt, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
+                    b.Price, b.Address, b.PaymentMethod,
+                    paymentStatus = b.Payment == null ? "Unpaid" : b.Payment.Status,
+                    paidAt = b.Payment == null ? (DateTime?)null : b.Payment.PaidAt,
+                    b.CreatedAt, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
         });
         // Compatibility for old clients: retain records instead of deleting history.
         orders.MapDelete("/{id:int}", CancelAsync);

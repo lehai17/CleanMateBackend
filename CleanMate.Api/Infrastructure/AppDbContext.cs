@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<CleanerProfile> CleanerProfiles => Set<CleanerProfile>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -25,6 +26,14 @@ public class AppDbContext : DbContext
         b.Entity<Booking>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Booking>().Property(p => p.StartedAt).HasConversion(utc);
         b.Entity<Booking>().Property(p => p.CompletedAt).HasConversion(utc);
+        b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
+        b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
+        b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)
+            .HasForeignKey<Payment>(p => p.BookingId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Payment>().HasIndex(p => p.BookingId).IsUnique();
+        b.Entity<Payment>().Property(p => p.Method).HasMaxLength(16);
+        b.Entity<Payment>().Property(p => p.Status).HasMaxLength(16);
+        b.Entity<Payment>().Property(p => p.Amount).HasPrecision(18, 2);
         b.Entity<User>().HasIndex(u => u.Email).IsUnique();
         b.Entity<User>()
             .HasOne(u => u.CleanerProfile)

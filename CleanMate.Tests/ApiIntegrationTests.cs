@@ -134,6 +134,71 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
+    public async Task Cash_receipt_requires_completed_assigned_job_and_ignores_client_amount()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var otherCleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var anonymous = fixture.Client();
+        var id = await Create(customer);
+        var path = $"/api/cleaner/jobs/{id}/cash-payment";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PutAsync(path, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PutAsync(path, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cleaner.PutAsync(path, null)).StatusCode);
+        await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync(path, null)).StatusCode);
+        await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync(path, null)).StatusCode);
+        await cleaner.PutAsync($"/api/cleaner/jobs/{id}/complete", null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherCleaner.PutAsync(path, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PutAsync(path, null)).StatusCode);
+        var unpaid = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Unpaid", unpaid.GetProperty("paymentStatus").GetString());
+        Assert.Equal(JsonValueKind.Null, unpaid.GetProperty("paidAt").ValueKind);
+        var response = await cleaner.PutAsJsonAsync(path, new { amount = 1, paidAt = "2000-01-01", collectedByCleanerId = -1 });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var receipt = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(140000m, receipt.GetProperty("amount").GetDecimal());
+        Assert.Equal("cash", receipt.GetProperty("method").GetString());
+        Assert.Equal("Paid", receipt.GetProperty("status").GetString());
+        Assert.True(receipt.GetProperty("collectedByCleanerId").GetInt32() > 0);
+        var paidAt = receipt.GetProperty("paidAt").GetDateTime();
+        Assert.Equal(DateTimeKind.Utc, paidAt.Kind);
+        Assert.InRange(paidAt, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow);
+        var repeat = await (await cleaner.PutAsync(path, null)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(receipt.GetProperty("id").GetGuid(), repeat.GetProperty("id").GetGuid());
+        Assert.Equal(paidAt, repeat.GetProperty("paidAt").GetDateTime());
+        var paid = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Completed", paid.GetProperty("status").GetString());
+        Assert.Equal("Paid", paid.GetProperty("paymentStatus").GetString());
+        Assert.Equal(paidAt, paid.GetProperty("paidAt").GetDateTime());
+        Assert.Equal(HttpStatusCode.NotFound, (await cleaner.PutAsync("/api/cleaner/jobs/2147483647/cash-payment", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Concurrent_cash_confirmations_return_the_same_single_receipt()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        foreach (var action in new[] { "accept", "start", "complete" })
+            Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        var responses = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(_ => cleaner.PutAsync($"/api/cleaner/jobs/{id}/cash-payment", null)));
+        var receipts = new List<Guid>();
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            receipts.Add((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+        }
+        Assert.Single(receipts.Distinct());
+        using var scope = fixture.Api.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var saved = Assert.Single(await db.Payments.Where(p => p.BookingId == id).ToListAsync());
+        Assert.Equal(140000m, saved.Amount);
+    }
+
+    [Fact]
     public async Task Assigned_cleaner_starts_and_completes_once_with_utc_timestamps_visible_to_customer()
     {
         using var customer = fixture.Client((await Register()).Token);
