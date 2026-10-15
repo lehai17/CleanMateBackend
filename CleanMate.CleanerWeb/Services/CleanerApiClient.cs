@@ -27,6 +27,7 @@ public class CleanerApiClient(HttpClient client, IHttpContextAccessor accessor)
     public Task<bool> AcceptAsync(int id) => SendJobActionAsync(id, "accept");
     public Task<bool> StartAsync(int id) => SendJobActionAsync(id, "start");
     public Task<bool> CompleteAsync(int id) => SendJobActionAsync(id, "complete");
+    public Task<bool> CashPaymentAsync(int id) => SendJobActionAsync(id, "cash-payment");
 
     private async Task<bool> SendJobActionAsync(int id, string action)
     {

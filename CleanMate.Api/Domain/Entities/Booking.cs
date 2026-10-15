@@ -13,6 +13,7 @@ public class Booking
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public Payment? Payment { get; set; }
 
     // Optional
     public string? Notes { get; set; }
