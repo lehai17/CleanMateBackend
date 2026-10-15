@@ -28,18 +28,9 @@ public static class WebApplicationExtensions
 
         try
         {
-            var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-
-            if (env.IsProduction())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.Migrate();
-            }
-            else
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContextSqlServer>();
-                db.Database.Migrate();
-            }
+            // Resolve the actual configured provider in every environment.
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
         }
         catch (Exception ex)
         {

@@ -1,74 +1,31 @@
-﻿using CleanMate.Infrastructure;
 using CleanMate.CleanerWeb.Models;
+using CleanMate.CleanerWeb.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-namespace CleanMate.CleanerWeb.Controllers
+namespace CleanMate.CleanerWeb.Controllers;
+
+[CleanerSession]
+public class CleanerController(CleanerApiClient api) : Controller
 {
-    public class CleanerController : Controller
+    public async Task<IActionResult> Profile()
     {
-        private readonly AppDbContext _db;
+        var user = await api.GetProfileAsync();
+        return View(new ProfileViewModel { FullName = user.FullName, PhoneNumber = user.PhoneNumber,
+            Address = user.CleanerProfile?.AddressText, Bio = user.CleanerProfile?.Bio });
+    }
 
-        public CleanerController(AppDbContext db)
+    [HttpPost]
+    public async Task<IActionResult> UpdateProfile(ProfileViewModel model)
+    {
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(model.FullName))
         {
-            _db = db;
+            ModelState.AddModelError("FullName", "Họ tên là bắt buộc.");
+            return View("Profile", model);
         }
-
-        // GET: /Cleaner/Profile
-        public async Task<IActionResult> Profile()
-        {
-            var cleanerId = HttpContext.Session.GetInt32("CleanerId");
-            if (cleanerId == null) return RedirectToAction("Login", "Auth");
-
-            var cleaner = await _db.CleanerProfiles
-                .Include(c => c.User)
-                .FirstOrDefaultAsync(c => c.Id == cleanerId);
-
-            if (cleaner == null) return NotFound();
-
-            var model = new ProfileViewModel
-            {
-                FullName = cleaner.User.FullName,
-                PhoneNumber = cleaner.User.PhoneNumber,
-                Address = cleaner.AddressText,
-                Bio = cleaner.Bio
-            };
-
-            return View(model);
-        }
-
-
-        [HttpPost]
-        public async Task<IActionResult> UpdateProfile(ProfileViewModel model)
-        {
-            var cleanerId = HttpContext.Session.GetInt32("CleanerId");
-            if (cleanerId == null) return RedirectToAction("Login", "Auth");
-
-            // ✅ Lấy CleanerProfile theo Id (chứ không phải User)
-            var cleaner = await _db.CleanerProfiles
-                .Include(c => c.User)
-                .FirstOrDefaultAsync(c => c.Id == cleanerId);
-
-            if (cleaner == null) return NotFound();
-
-            // ✅ Cập nhật thông tin
-            cleaner.User.FullName = model.FullName;
-            cleaner.User.PhoneNumber = model.PhoneNumber;
-            cleaner.Bio = model.Bio;
-            cleaner.AddressText = model.Address;
-
-            await _db.SaveChangesAsync();
-
-            // ✅ Cập nhật lại session (để Dashboard đọc được bản mới)
-            HttpContext.Session.SetString("FullName", cleaner.User.FullName);
-            HttpContext.Session.SetString("PhoneNumber", cleaner.User.PhoneNumber ?? "");
-            HttpContext.Session.SetString("Address", cleaner.AddressText ?? "");
-            HttpContext.Session.SetString("Bio", cleaner.Bio ?? "");
-
-            TempData["Message"] = "Profile updated successfully!";
-            return RedirectToAction("Index", "Dashboard");
-        }
-
-
+        var user = await api.GetProfileAsync();
+        await api.UpdateProfileAsync(new { model.FullName, model.PhoneNumber, addressText = model.Address ?? "",
+            bio = model.Bio ?? "", city = user.CleanerProfile?.City, hourlyRate = user.CleanerProfile?.HourlyRate });
+        HttpContext.Session.SetString("FullName", model.FullName);
+        return RedirectToAction("Index", "Dashboard");
     }
 }

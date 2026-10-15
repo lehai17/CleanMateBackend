@@ -1,9 +1,3 @@
-﻿namespace CleanMate.Domain.Entities
-{
-    public enum UserRole
-    {
-        Admin = 1,
-        Cleaner = 2,
-        Customer = 3
-    }
-}
+namespace CleanMate.Domain.Entities;
+
+public enum UserRole { Customer = 0, Cleaner = 1, Admin = 2 }

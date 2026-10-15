@@ -2,7 +2,7 @@ using CleanMate.Api.Contracts;
 using CleanMate.Api.Domain.Entities;
 using CleanMate.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+using Google.Apis.Auth;
 using BCryptNet = BCrypt.Net.BCrypt;
 
 namespace CleanMate.Api.Services;
@@ -11,11 +11,13 @@ public class AuthService
 {
     private readonly CurrentUserService _currentUserService;
     private readonly JwtTokenService _jwtTokenService;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(CurrentUserService currentUserService, JwtTokenService jwtTokenService)
+    public AuthService(CurrentUserService currentUserService, JwtTokenService jwtTokenService, IConfiguration configuration)
     {
         _currentUserService = currentUserService;
         _jwtTokenService = jwtTokenService;
+        _configuration = configuration;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(AppDbContext db, RegisterDto dto)
@@ -33,34 +35,32 @@ public class AuthService
             Role = requestedRole
         };
 
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-
         if (requestedRole == UserRole.Cleaner)
         {
-            db.CleanerProfiles.Add(new CleanerProfile
+            user.CleanerProfile = new CleanerProfile
             {
                 UserId = user.Id,
                 Bio = "New cleaner",
                 HourlyRate = 120000m,
                 City = "Ha Noi",
                 AddressText = user.Address ?? string.Empty
-            });
-            await db.SaveChangesAsync();
+            };
         }
 
-        await db.Entry(user).Reference(entry => entry.CleanerProfile).LoadAsync();
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
         return _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
     }
 
     public async Task<AuthResponseDto?> LoginAsync(AppDbContext db, LoginDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password)) return null;
         var email = dto.Email.Trim().ToLowerInvariant();
         var user = await db.Users
             .Include(entry => entry.CleanerProfile)
             .FirstOrDefaultAsync(entry => entry.Email == email);
 
-        if (user is null || !BCryptNet.Verify(dto.Password, user.PasswordHash))
+        if (user is null || string.IsNullOrEmpty(user.PasswordHash) || !BCryptNet.Verify(dto.Password, user.PasswordHash))
         {
             return null;
         }
@@ -70,15 +70,21 @@ public class AuthService
 
     public async Task<AuthResponseDto?> LoginWithGoogleAsync(AppDbContext db, GoogleLoginDto dto)
     {
-        using var client = new HttpClient();
-        var response = await client.GetStringAsync(
-            $"https://oauth2.googleapis.com/tokeninfo?id_token={dto.IdToken}");
-        var info = JsonDocument.Parse(response).RootElement;
-
-        var email = info.GetProperty("email").GetString();
-        var name = info.TryGetProperty("name", out var nameElement)
-            ? nameElement.GetString()
-            : null;
+        var audiences = _configuration.GetSection("Authentication:Google:ClientIds").Get<string[]>()
+            ?? Array.Empty<string>();
+        var clientId = _configuration["Authentication:Google:ClientId"];
+        if (!string.IsNullOrWhiteSpace(clientId)) audiences = audiences.Append(clientId).ToArray();
+        if (audiences.Length == 0) return null;
+        GoogleJsonWebSignature.Payload info;
+        try
+        {
+            info = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings { Audience = audiences });
+        }
+        catch (InvalidJwtException) { return null; }
+        if (!info.EmailVerified) return null;
+        var email = info.Email;
+        var name = info.Name;
 
         if (string.IsNullOrWhiteSpace(email))
         {
