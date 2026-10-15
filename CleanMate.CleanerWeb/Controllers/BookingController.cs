@@ -20,4 +20,18 @@ public class BookingController(CleanerApiClient api) : Controller
         TempData["Message"] = await api.AcceptAsync(id) ? "Nhận việc thành công." : "Đơn không còn khả dụng.";
         return RedirectToAction("List");
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Start(int id)
+    {
+        TempData["Message"] = await api.StartAsync(id) ? "Đã bắt đầu công việc." : "Không thể bắt đầu: trạng thái đơn đã thay đổi.";
+        return RedirectToAction("List");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Complete(int id)
+    {
+        TempData["Message"] = await api.CompleteAsync(id) ? "Đã hoàn thành công việc." : "Không thể hoàn thành: trạng thái đơn đã thay đổi.";
+        return RedirectToAction("List");
+    }
 }

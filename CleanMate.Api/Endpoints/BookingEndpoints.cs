@@ -22,7 +22,7 @@ public static class BookingEndpoints
                 UserId = user.Id, StartTime = dto.StartTime.UtcDateTime, DurationHours = dto.DurationHours,
                 Price = BookingRules.HourlyRates[dto.ServiceKey] * dto.DurationHours,
                 Address = dto.Address.Trim(), Notes = $"[{dto.ServiceKey}] {dto.Notes?.Trim()}".Trim(),
-                PaymentMethod = "cash", CreatedAt = DateTime.UtcNow, Status = "Pending"
+                PaymentMethod = "cash", CreatedAt = DateTime.UtcNow, Status = BookingStatuses.Pending
             };
             db.Bookings.Add(booking);
             await db.SaveChangesAsync();
@@ -36,7 +36,7 @@ public static class BookingEndpoints
             return Results.Ok(await db.Bookings.Where(b => b.UserId == userId.Value)
                 .OrderByDescending(b => b.CreatedAt)
                 .Select(b => new { b.Id, orderCode = "CM" + b.Id, date = b.StartTime,
-                    b.Price, b.Address, b.PaymentMethod, b.CreatedAt, b.Status }).ToListAsync());
+                    b.Price, b.Address, b.PaymentMethod, b.CreatedAt, b.Status, b.StartedAt, b.CompletedAt }).ToListAsync());
         });
         // Compatibility for old clients: retain records instead of deleting history.
         orders.MapDelete("/{id:int}", CancelAsync);
@@ -51,10 +51,10 @@ public static class BookingEndpoints
         var booking = await db.Bookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
         if (booking is null) return Results.NotFound();
         if (booking.UserId != userId.Value) return Results.Forbid();
-        if (booking.Status == "Cancelled") return Results.NoContent();
+        if (booking.Status == BookingStatuses.Cancelled) return Results.NoContent();
         var count = await db.Bookings.Where(b => b.Id == id && b.UserId == userId.Value &&
-                b.Status == "Pending" && b.CleanerId == null && b.StartTime > DateTime.UtcNow)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(b => b.Status, "Cancelled"));
+                b.Status == BookingStatuses.Pending && b.CleanerId == null && b.StartTime > DateTime.UtcNow)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(b => b.Status, BookingStatuses.Cancelled));
         return count == 1 ? Results.NoContent() : Results.Conflict(new { message = "Chỉ có thể hủy đơn đang chờ và chưa đến giờ làm." });
     }
 }

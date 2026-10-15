@@ -55,14 +55,24 @@
                                 {
                                     <span class="badge bg-secondary">@b.Status</span>
                                 }
+                                @if (b.StartedAt.HasValue)
+                                {
+                                    <small class="d-block">Bắt đầu: @b.StartedAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
+                                }
+                                @if (b.CompletedAt.HasValue)
+                                {
+                                    <small class="d-block">Hoàn thành: @b.CompletedAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
+                                }
                             </td>
                             <td class="text-center">
-                                @if (b.Status == "Pending")
+                                @if (b.Status is "Pending" or "Accepted" or "InProgress")
                                 {
-                                    <form asp-action="Accept" method="post">
+                                    var action = b.Status == "Pending" ? "Accept" : b.Status == "Accepted" ? "Start" : "Complete";
+                                    var label = b.Status == "Pending" ? "Nhận đơn" : b.Status == "Accepted" ? "Bắt đầu công việc" : "Hoàn thành công việc";
+                                    <form asp-action="@action" method="post">
                                         <input type="hidden" name="id" value="@b.Id" />
                                         <button type="submit" class="btn btn-sm btn-primary">
-                                            Nhận đơn
+                                            @label
                                         </button>
                                     </form>
                                 }

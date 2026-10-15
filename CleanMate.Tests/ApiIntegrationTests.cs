@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -46,7 +48,7 @@ public sealed class ApiFixture : IAsyncLifetime
             builder.WebHost.UseUrls("http://127.0.0.1:0");
         });
         using (var scope = Api.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreatedAsync();
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
         await Api.StartAsync();
         Portal = CleanerApplication.Build([], builder =>
         {
@@ -93,6 +95,19 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         Assert.False(scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.HasPendingModelChanges());
     }
 
+    [Fact]
+    public void Postgres_model_matches_migrations_and_generates_native_schema_script()
+    {
+        using var db = new PostgresDesignTimeFactory().CreateDbContext([]);
+        Assert.False(db.Database.HasPendingModelChanges());
+        var script = db.GetService<IMigrator>().GenerateScript();
+        Assert.Contains("ADD \"Address\" text", script);
+        Assert.Contains("ADD \"PhoneNumber\" text", script);
+        Assert.Contains("ADD \"Status\" text", script);
+        Assert.DoesNotContain("nvarchar", script);
+        Assert.DoesNotContain("ALTER COLUMN \"Price\"", script);
+    }
+
     private async Task<(string Token, int Id, string Email)> Register(string role = "Customer")
     {
         var email = Guid.NewGuid().ToString("N") + "@example.test";
@@ -108,13 +123,110 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         string address = "123 Test Street", string paymentMethod = "cash") =>
         new { serviceKey, startTime = startTime ?? DateTimeOffset.UtcNow.AddDays(2), durationHours,
             address, notes = "Test booking", paymentMethod,
-            price = 1, userId = -1, cleanerId = 999, status = "Completed" };
+            price = 1, userId = -1, cleanerId = 999, status = "Completed",
+            startedAt = "2000-01-01T00:00:00Z", completedAt = "2000-01-01T00:00:00Z" };
 
     private static async Task<int> Create(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/bookings", Booking());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    [Fact]
+    public async Task Assigned_cleaner_starts_and_completes_once_with_utc_timestamps_visible_to_customer()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        async Task<JsonElement> Order() => Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!,
+            order => order.GetProperty("id").GetInt32() == id);
+        var accepted = await Order();
+        Assert.Equal(JsonValueKind.Null, accepted.GetProperty("startedAt").ValueKind);
+        Assert.Equal(JsonValueKind.Null, accepted.GetProperty("completedAt").ValueKind);
+        Assert.Equal(DateTimeKind.Utc, accepted.GetProperty("date").GetDateTime().Kind);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/complete", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null)).StatusCode);
+        var started = await Order();
+        Assert.Equal("InProgress", started.GetProperty("status").GetString());
+        var startedAt = started.GetProperty("startedAt").GetDateTime();
+        Assert.Equal(DateTimeKind.Utc, startedAt.Kind);
+        Assert.InRange(startedAt, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow);
+        Assert.Equal(JsonValueKind.Null, started.GetProperty("completedAt").ValueKind);
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsync($"/api/orders/{id}/cancel", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null)).StatusCode);
+        Assert.Equal(startedAt, (await Order()).GetProperty("startedAt").GetDateTime());
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/complete", null)).StatusCode);
+        var completed = await Order();
+        var completedAt = completed.GetProperty("completedAt").GetDateTime();
+        Assert.Equal("Completed", completed.GetProperty("status").GetString());
+        Assert.Equal(DateTimeKind.Utc, completedAt.Kind);
+        Assert.True(completedAt >= startedAt);
+        Assert.Equal(startedAt, completed.GetProperty("startedAt").GetDateTime());
+        Assert.Equal(140000m, completed.GetProperty("price").GetDecimal());
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/complete", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null)).StatusCode);
+        Assert.Equal(completedAt, (await Order()).GetProperty("completedAt").GetDateTime());
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!,
+            job => job.GetProperty("id").GetInt32() == id);
+        Assert.Equal(completedAt, mine.GetProperty("completedAt").GetDateTime());
+    }
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("complete")]
+    public async Task Job_progress_requires_assigned_cleaner_and_checks_missing_bookings(string action)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var otherCleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var anonymous = fixture.Client();
+        var id = await Create(customer);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null);
+        if (action == "complete") await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherCleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await cleaner.PutAsync($"/api/cleaner/jobs/{int.MaxValue}/{action}", null)).StatusCode);
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal(action == "start" ? "Accepted" : "InProgress", mine.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, mine.GetProperty("completedAt").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("complete")]
+    public async Task Concurrent_progress_requests_change_state_exactly_once(string action)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null);
+        if (action == "complete") await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null);
+        var replies = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)));
+        Assert.Single(replies, response => response.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(3, replies.Count(response => response.StatusCode == HttpStatusCode.Conflict));
+        var job = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal(action == "start" ? "InProgress" : "Completed", job.GetProperty("status").GetString());
+        Assert.Equal(DateTimeKind.Utc, job.GetProperty(action == "start" ? "startedAt" : "completedAt").GetDateTime().Kind);
+    }
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("complete")]
+    public async Task Cancelled_booking_cannot_be_started_or_completed(string action)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        await customer.PutAsync($"/api/orders/{id}/cancel", null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Cancelled", order.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("startedAt").ValueKind);
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("completedAt").ValueKind);
     }
 
     [Fact]
@@ -262,7 +374,8 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         using var handler = new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer() };
         using var portal = new HttpClient(handler) { BaseAddress = fixture.PortalUrl };
         Assert.Equal(HttpStatusCode.Redirect, (await portal.GetAsync("/Booking/List")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await portal.PostAsync("/Booking/Accept", new FormUrlEncodedContent(new Dictionary<string, string> { ["id"] = "1" }))).StatusCode);
+        foreach (var action in new[] { "Accept", "Start", "Complete" })
+            Assert.Equal(HttpStatusCode.BadRequest, (await portal.PostAsync($"/Booking/{action}", new FormUrlEncodedContent(new Dictionary<string, string> { ["id"] = "1" }))).StatusCode);
         var email = Guid.NewGuid().ToString("N") + "@example.test";
         async Task<HttpResponseMessage> Form(string path, Dictionary<string, string> data)
         {
