@@ -24,9 +24,13 @@ public class CleanerApiClient(HttpClient client, IHttpContextAccessor accessor)
         return await response.Content.ReadFromJsonAsync<T>() ?? throw new HttpRequestException("API returned no data.");
     }
 
-    public async Task<bool> AcceptAsync(int id)
+    public Task<bool> AcceptAsync(int id) => SendJobActionAsync(id, "accept");
+    public Task<bool> StartAsync(int id) => SendJobActionAsync(id, "start");
+    public Task<bool> CompleteAsync(int id) => SendJobActionAsync(id, "complete");
+
+    private async Task<bool> SendJobActionAsync(int id, string action)
     {
-        using var request = Authorized(HttpMethod.Put, $"api/cleaner/jobs/{id}/accept");
+        using var request = Authorized(HttpMethod.Put, $"api/cleaner/jobs/{id}/{action}");
         using var response = await client.SendAsync(request);
         if (response.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound) return false;
         response.EnsureSuccessStatusCode();

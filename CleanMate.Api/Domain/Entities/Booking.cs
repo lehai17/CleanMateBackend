@@ -11,6 +11,8 @@ public class Booking
     public string Address { get; set; } = string.Empty;
     public string? PaymentMethod { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
 
     // Optional
     public string? Notes { get; set; }
@@ -20,6 +22,6 @@ public class Booking
     public User? User { get; set; } // Customer
     public CleanerProfile? Cleaner { get; set; } // Cleaner
 
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = BookingStatuses.Pending;
 
 }

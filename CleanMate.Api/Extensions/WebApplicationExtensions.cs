@@ -26,16 +26,9 @@ public static class WebApplicationExtensions
     {
         using var scope = app.Services.CreateScope();
 
-        try
-        {
-            // Resolve the actual configured provider in every environment.
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Migration skipped: " + ex.Message);
-        }
+        // Fail startup when migration fails, instead of serving requests against an incomplete schema.
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
 
         return app;
     }

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CleanMate.Api.Migrations.Postgres
 {
-    [DbContext(typeof(AppDbContextSqlServer))]
+    [DbContext(typeof(AppDbContext))]
     [Migration("20251101164439_AddPhoneNumberToUser_Postgres")]
     partial class AddPhoneNumberToUser_Postgres
     {
