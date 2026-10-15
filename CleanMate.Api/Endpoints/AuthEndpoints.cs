@@ -12,9 +12,12 @@ public static class AuthEndpoints
 
         group.MapPost("/register", async (AppDbContext db, AuthService authService, RegisterDto dto) =>
         {
-            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Email)
+                || !System.Net.Mail.MailAddress.TryCreate(dto.Email.Trim(), out var address)
+                || address.Address != dto.Email.Trim() || string.IsNullOrWhiteSpace(dto.Password)
+                || dto.Password.Length < 8 || !Enum.IsDefined(dto.Role))
             {
-                return Results.BadRequest("Email/Password required");
+                return Results.BadRequest(new { message = "Vui lòng nhập họ tên, email hợp lệ và mật khẩu ít nhất 8 ký tự." });
             }
 
             var email = dto.Email.Trim().ToLowerInvariant();

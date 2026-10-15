@@ -26,6 +26,8 @@ public static class ProfileEndpoints
 
         group.MapPut("/", async (AppDbContext db, CurrentUserService currentUserService, ClaimsPrincipal principal, ProfileUpdateDto dto) =>
         {
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+                return Results.BadRequest(new { message = "Họ tên là bắt buộc." });
             var user = await currentUserService.GetCurrentUserAsync(db, principal);
             if (user is null)
             {
@@ -57,7 +59,7 @@ public static class ProfileEndpoints
             user.CleanerProfile = new CleanerProfile
             {
                 UserId = user.Id,
-                Bio = dto.Bio.Trim(),
+                Bio = dto.Bio?.Trim() ?? string.Empty,
                 City = string.IsNullOrWhiteSpace(dto.City) ? "Ha Noi" : dto.City.Trim(),
                 AddressText = string.IsNullOrWhiteSpace(dto.AddressText)
                     ? user.Address ?? string.Empty
@@ -71,6 +73,8 @@ public static class ProfileEndpoints
 
         app.MapPut("/api/cleaner/profile", async (AppDbContext db, CurrentUserService currentUserService, ClaimsPrincipal principal, CleanerProfileUpdateDto dto) =>
         {
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+                return Results.BadRequest(new { message = "Họ tên là bắt buộc." });
             var user = await currentUserService.GetCurrentUserAsync(db, principal);
             if (user?.CleanerProfile is null)
             {
@@ -79,8 +83,8 @@ public static class ProfileEndpoints
 
             user.FullName = dto.FullName.Trim();
             user.PhoneNumber = currentUserService.NormalizeOptional(dto.PhoneNumber);
-            user.CleanerProfile.AddressText = dto.AddressText.Trim();
-            user.CleanerProfile.Bio = dto.Bio.Trim();
+            user.CleanerProfile.AddressText = dto.AddressText?.Trim() ?? string.Empty;
+            user.CleanerProfile.Bio = dto.Bio?.Trim() ?? string.Empty;
             user.CleanerProfile.City = string.IsNullOrWhiteSpace(dto.City) ? "Ha Noi" : dto.City.Trim();
             user.CleanerProfile.HourlyRate = dto.HourlyRate <= 0
                 ? user.CleanerProfile.HourlyRate

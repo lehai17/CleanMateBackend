@@ -7,7 +7,7 @@
 }
 
 <div class="container mt-4">
-    <h3 class="mb-4 text-center"> My Assigned Bookings</h3>
+    <h3 class="mb-4 text-center">Available and Assigned Bookings</h3>
 
     @if (TempData["Message"] != null)
     {
@@ -16,7 +16,7 @@
 
     @if (Model == null || !Model.Any())
     {
-        <div class="alert alert-info text-center">No bookings assigned yet.</div>
+        <div class="alert alert-info text-center">No available or assigned bookings.</div>
     }
     else
     {

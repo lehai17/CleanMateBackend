@@ -33,7 +33,7 @@ public class CurrentUserService
     public async Task<CleanerProfile?> GetCleanerProfileAsync(AppDbContext db, ClaimsPrincipal principal)
     {
         var user = await GetCurrentUserAsync(db, principal);
-        return user?.CleanerProfile;
+        return user?.Role == UserRole.Cleaner ? user.CleanerProfile : null;
     }
 
     public UserResponseDto MapUser(User user)

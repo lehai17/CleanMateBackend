@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddCleanMateDb(configuration);
-        services.AddCleanMateCors();
+        services.AddCleanMateCors(configuration);
         services.AddCleanMateAuth(configuration);
         services.AddScoped<CurrentUserService>();
         services.AddScoped<AuthService>();
@@ -63,17 +63,17 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddCleanMateCors(this IServiceCollection services)
+    public static IServiceCollection AddCleanMateCors(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCors(options =>
         {
             options.AddPolicy(CorsPolicy, policy =>
             {
                 policy
-                    .SetIsOriginAllowed(_ => true)
+                    .WithOrigins(configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                        ?? new[] { "http://localhost:3000" })
                     .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowAnyMethod();
             });
         });
 
@@ -92,8 +92,10 @@ public static class ServiceCollectionExtensions
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
+                    ValidateIssuer = true,
+                    ValidIssuer = configuration["Jwt:Issuer"] ?? "CleanMate",
+                    ValidateAudience = true,
+                    ValidAudience = configuration["Jwt:Audience"] ?? "CleanMate",
                     ValidateIssuerSigningKey = true,
                     ValidateLifetime = true,
                     IssuerSigningKey = signingKey

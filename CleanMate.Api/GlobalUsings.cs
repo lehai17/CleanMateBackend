@@ -1,0 +1,1 @@
+global using UserRole = CleanMate.Domain.Entities.UserRole;

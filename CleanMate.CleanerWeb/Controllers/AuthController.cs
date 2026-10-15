@@ -1,142 +1,70 @@
-﻿using BCrypt.Net;
-using CleanMate.Infrastructure;
-using CleanMate.Domain.Entities;
-
-
 using CleanMate.CleanerWeb.Models;
+using CleanMate.CleanerWeb.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-namespace CleanMate.CleanerWeb.Controllers
+namespace CleanMate.CleanerWeb.Controllers;
+
+public class AuthController(CleanerApiClient api) : Controller
 {
-    public class AuthController : Controller
+    [HttpGet]
+    public IActionResult Login() => HttpContext.Session.GetString("AccessToken") is not null
+        ? RedirectToAction("Index", "Dashboard") : View(new LoginViewModel());
+
+    [HttpPost]
+    public async Task<IActionResult> Login(LoginViewModel model)
     {
-        private readonly AppDbContext _db;
-
-        public AuthController(AppDbContext db)
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
         {
-            _db = db;
+            model.ErrorMessage = "Vui lòng nhập email và mật khẩu.";
+            return View(model);
         }
-
-        // GET: /Auth/Login
-        [HttpGet]
-        public IActionResult Login()
+        var auth = await api.AuthenticateAsync("api/auth/login", new { model.Email, model.Password });
+        if (auth is null || auth.User.Role != "Cleaner" || !auth.User.IsCleaner)
         {
-            // Nếu đã login rồi thì về Dashboard
-            if (HttpContext.Session.GetInt32("UserId") != null)
-                return RedirectToAction("Index", "Dashboard");
-
-            return View(new LoginViewModel());
+            model.ErrorMessage = "Email, mật khẩu hoặc quyền cleaner không hợp lệ.";
+            return View(model);
         }
+        SignIn(auth);
+        return RedirectToAction("Index", "Dashboard");
+    }
 
-        // POST: /Auth/Login
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
+    [HttpGet]
+    public IActionResult Register() => View(new RegisterViewModel());
+
+    [HttpPost]
+    public async Task<IActionResult> Register(RegisterViewModel model)
+    {
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(model.FullName) ||
+            string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password) ||
+            model.Password.Length < 8 || model.Password != model.ConfirmPassword)
         {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var user = await _db.Users
-                .Include(u => u.CleanerProfile)
-                .FirstOrDefaultAsync(u => u.Email == model.Email);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
-            {
-                model.ErrorMessage = "❌ Email hoặc mật khẩu không đúng.";
-                return View(model);
-            }
-
-            if (user.Role.ToString() != "Cleaner")
-            {
-                model.ErrorMessage = "🚫 Bạn không có quyền truy cập (chỉ dành cho Cleaner).";
-                return View(model);
-            }
-
-            // Lưu session
-            HttpContext.Session.SetInt32("UserId", user.Id);
-            HttpContext.Session.SetString("FullName", user.FullName);
-            HttpContext.Session.SetString("Role", user.Role.ToString());
-            if (user.CleanerProfile != null)
-                HttpContext.Session.SetInt32("CleanerId", user.CleanerProfile.Id);
-
-            return RedirectToAction("Index", "Dashboard");
+            model.ErrorMessage = "Nhập đầy đủ thông tin, mật khẩu ít nhất 8 ký tự và xác nhận trùng khớp.";
+            return View(model);
         }
-
-
-        // GET: /Auth/Register
-        [HttpGet]
-        public IActionResult Register()
+        var auth = await api.AuthenticateAsync("api/auth/register",
+            new { model.FullName, model.Email, model.Password, role = "Cleaner" });
+        if (auth is null || auth.User.Role != "Cleaner" || !auth.User.IsCleaner)
         {
-            return View(new RegisterViewModel());
+            model.ErrorMessage = "Không thể đăng ký. Kiểm tra email và thông tin đã nhập.";
+            return View(model);
         }
+        SignIn(auth);
+        return RedirectToAction("Index", "Dashboard");
+    }
 
-        // POST: /Auth/Register
-        [HttpPost]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (string.IsNullOrWhiteSpace(model.FullName) ||
-                string.IsNullOrWhiteSpace(model.Email) ||
-                string.IsNullOrWhiteSpace(model.Password))
-            {
-                model.ErrorMessage = "⚠️ Please fill all required fields.";
-                return View(model);
-            }
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Clear();
+        return RedirectToAction("Login");
+    }
 
-            if (model.Password != model.ConfirmPassword)
-            {
-                model.ErrorMessage = "❌ Passwords do not match.";
-                return View(model);
-            }
-
-            var email = model.Email.Trim().ToLowerInvariant();
-            if (await _db.Users.AnyAsync(u => u.Email == email))
-            {
-                model.ErrorMessage = "⚠️ Email already exists.";
-                return View(model);
-            }
-
-            // Tạo user
-            var user = new User
-            {
-                FullName = model.FullName,
-                Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                Role = (int)UserRole.Cleaner,
-
-            };
-
-            _db.Users.Add(user);
-            await _db.SaveChangesAsync();
-
-            // Tạo hồ sơ cleaner
-            var profile = new CleanerProfile
-            {
-                UserId = user.Id,
-                Bio = "New cleaner",
-                HourlyRate = 120000,
-                AvgRating = 0,
-                City = "Hà Nội",
-                AddressText = "Updating..."
-            };
-            _db.CleanerProfiles.Add(profile);
-            await _db.SaveChangesAsync();
-
-            // Tự động login
-            HttpContext.Session.SetInt32("UserId", user.Id);
-            HttpContext.Session.SetString("FullName", user.FullName);
-            HttpContext.Session.SetString("Role", user.Role.ToString());
-            HttpContext.Session.SetInt32("CleanerId", profile.Id);
-
-            model.SuccessMessage = "✅ Registered successfully! Redirecting...";
-            return RedirectToAction("Index", "Dashboard");
-        }
-
-
-        // GET: /Auth/Logout
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear();
-            return RedirectToAction("Login");
-        }
+    private void SignIn(ApiAuth auth)
+    {
+        HttpContext.Session.Clear();
+        HttpContext.Session.SetString("AccessToken", auth.Token);
+        HttpContext.Session.SetString("Role", auth.User.Role);
+        HttpContext.Session.SetInt32("UserId", auth.User.Id);
+        HttpContext.Session.SetString("FullName", auth.User.FullName);
+        HttpContext.Session.SetInt32("CleanerId", auth.User.CleanerProfile!.Id);
     }
 }

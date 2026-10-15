@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanMate.CleanerWeb", "Cle
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanMate.Shared", "CleanMate.Shared\CleanMate.Shared.csproj", "{03CC7FFC-EB52-4DDE-AAA6-7C4BA2511F8C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CleanMate.Tests", "CleanMate.Tests\CleanMate.Tests.csproj", "{B4CD931E-9ECF-4BE7-8E26-0119B234764B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{03CC7FFC-EB52-4DDE-AAA6-7C4BA2511F8C}.Release|x64.Build.0 = Release|Any CPU
 		{03CC7FFC-EB52-4DDE-AAA6-7C4BA2511F8C}.Release|x86.ActiveCfg = Release|Any CPU
 		{03CC7FFC-EB52-4DDE-AAA6-7C4BA2511F8C}.Release|x86.Build.0 = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|x64.Build.0 = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Debug|x86.Build.0 = Debug|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|x64.ActiveCfg = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|x64.Build.0 = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|x86.ActiveCfg = Release|Any CPU
+		{B4CD931E-9ECF-4BE7-8E26-0119B234764B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
