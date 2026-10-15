@@ -8,3 +8,4 @@ obj/
 *.cache
 *.log
 *.vsidx
+appsettings.Payments.local.json

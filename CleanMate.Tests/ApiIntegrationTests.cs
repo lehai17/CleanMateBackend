@@ -42,7 +42,9 @@ public sealed class ApiFixture : IAsyncLifetime
                 ["Jwt:Key"] = "cleanmate-integration-tests-only-secret-at-least-32-bytes",
                 ["Jwt:Issuer"] = "CleanMateTests",
                 ["Jwt:Audience"] = "CleanMateTests",
-                ["Cors:AllowedOrigins:0"] = "http://localhost:3000"
+                ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
+                // Stale deployment settings must never reactivate online payments.
+                ["Payments:Momo:Enabled"] = "true", ["Payments:PayOs:Enabled"] = "true"
             });
             builder.Logging.ClearProviders();
             builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -120,9 +122,9 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     private static object Booking(object? startTime = null, string serviceKey = "cleaning", int durationHours = 2,
-        string address = "123 Test Street", string paymentMethod = "cash") =>
+        string address = "123 Test Street", string paymentMethod = "cash", string? contactName = null, string? contactPhone = null) =>
         new { serviceKey, startTime = startTime ?? DateTimeOffset.UtcNow.AddDays(2), durationHours,
-            address, notes = "Test booking", paymentMethod,
+            address, notes = "Test booking", paymentMethod, contactName, contactPhone,
             price = 1, userId = -1, cleanerId = 999, status = "Completed",
             startedAt = "2000-01-01T00:00:00Z", completedAt = "2000-01-01T00:00:00Z" };
 
@@ -131,6 +133,347 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var response = await client.PostAsJsonAsync("/api/bookings", Booking());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    private static async Task<int> CreateAt(HttpClient client, DateTimeOffset start, int hours = 2)
+    {
+        var response = await client.PostAsJsonAsync("/api/bookings", Booking(startTime: start, durationHours: hours));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    [Fact]
+    public async Task Booking_contact_is_preserved_independently_of_account_profile()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var response = await customer.PostAsJsonAsync("/api/bookings", Booking(
+            contactName: "  Person at the house  ", contactPhone: "  +84 902 345 678  "));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var id = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync("/api/profile", new
+        { fullName = "Changed account name", phoneNumber = "0909999999" })).StatusCode);
+        var available = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!
+            .Single(job => job.GetProperty("id").GetInt32() == id);
+        Assert.Equal("Person at the house", available.GetProperty("customerName").GetString());
+        Assert.Equal("+84 902 345 678", available.GetProperty("customerPhone").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal("Person at the house", mine.GetProperty("customerName").GetString());
+        Assert.Equal("+84 902 345 678", mine.GetProperty("customerPhone").GetString());
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Person at the house", order.GetProperty("contactName").GetString());
+        Assert.Equal("+84 902 345 678", order.GetProperty("contactPhone").GetString());
+    }
+
+    [Fact]
+    public async Task Older_clients_snapshot_profile_contact_including_an_absent_phone()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync("/api/profile", new
+        { fullName = "New name", phoneNumber = "0909999999" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal("Integration User", mine.GetProperty("customerName").GetString());
+        Assert.Equal(JsonValueKind.Null, mine.GetProperty("customerPhone").ValueKind);
+    }
+
+    [Fact]
+    public async Task Legacy_bookings_without_contact_fields_keep_profile_fallback()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        using (var scope = fixture.Api.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Bookings.Where(b => b.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(b => b.ContactName, (string?)null)
+                    .SetProperty(b => b.ContactPhone, (string?)null));
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync("/api/profile", new
+        { fullName = "Legacy contact", phoneNumber = "0901234567" })).StatusCode);
+        var job = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!
+            .Single(b => b.GetProperty("id").GetInt32() == id);
+        Assert.Equal("Legacy contact", job.GetProperty("customerName").GetString());
+        Assert.Equal("0901234567", job.GetProperty("customerPhone").GetString());
+    }
+
+    [Fact]
+    public async Task Booking_contact_length_limits_reject_oversized_input_and_accept_boundaries()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        foreach (var input in new[] { Booking(contactName: new string('x', 201), contactPhone: "0901234567"),
+            Booking(contactName: "Contact", contactPhone: new string(' ', 31) + "0901234567") })
+            Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", input)).StatusCode);
+        Assert.Empty((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/bookings",
+            Booking(contactName: new string('x', 200), contactPhone: "+123456789012345"))).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("", "0901234567")]
+    [InlineData("   ", "0901234567")]
+    [InlineData("Contact", "")]
+    [InlineData("Contact", "*123#")]
+    [InlineData("Contact", "12345")]
+    [InlineData("Contact", "1234567890123456")]
+    public async Task Booking_rejects_invalid_explicit_contact_without_creating_order(string name, string phone)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings",
+            Booking(contactName: name, contactPhone: phone))).StatusCode);
+        Assert.Empty((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+    }
+
+    [Theory]
+    [InlineData(-1, 2, true)]
+    [InlineData(0, 2, true)]
+    [InlineData(1, 2, true)]
+    [InlineData(0, 1, true)]
+    [InlineData(-1, 4, true)]
+    [InlineData(-2, 2, false)]
+    [InlineData(2, 2, false)]
+    public async Task Cleaner_schedule_rejects_overlap_but_allows_touching_boundaries(int offsetHours, int hours, bool overlap)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var anotherCleaner = fixture.Client((await Register("Cleaner")).Token);
+        // Cross midnight and submit the target using another offset to verify UTC comparisons.
+        var start = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(3).AddHours(23), TimeSpan.Zero);
+        var first = await CreateAt(customer, start);
+        var second = await CreateAt(customer, start.AddHours(offsetHours).ToOffset(TimeSpan.FromHours(7)), hours);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{first}/accept", null)).StatusCode);
+        var available = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!;
+        Assert.Equal(!overlap, available.Any(job => job.GetProperty("id").GetInt32() == second));
+        var response = await cleaner.PutAsync($"/api/cleaner/jobs/{second}/accept", null);
+        Assert.Equal(overlap ? HttpStatusCode.Conflict : HttpStatusCode.OK, response.StatusCode);
+        if (overlap)
+        {
+            Assert.Contains("trùng lịch", await response.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.OK, (await anotherCleaner.PutAsync($"/api/cleaner/jobs/{second}/accept", null)).StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Owner_orders_show_only_the_assigned_cleaner_contact_after_acceptance()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var stranger = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var guest = fixture.Client();
+        var id = await Create(customer);
+        var otherId = await Create(stranger);
+        var pending = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(JsonValueKind.Null, pending.GetProperty("cleaner").ValueKind);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsJsonAsync("/api/profile", new
+        { fullName = "Assigned Cleaner", phoneNumber = "+84 901 234 567", address = "Private home address" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        var accepted = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        var contact = accepted.GetProperty("cleaner");
+        Assert.Equal("Assigned Cleaner", contact.GetProperty("name").GetString());
+        Assert.Equal("+84 901 234 567", contact.GetProperty("phoneNumber").GetString());
+        Assert.Equal(2, contact.EnumerateObject().Count());
+        Assert.False(contact.TryGetProperty("email", out _));
+        Assert.False(contact.TryGetProperty("address", out _));
+        var otherOrder = Assert.Single((await stranger.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(otherId, otherOrder.GetProperty("id").GetInt32());
+        Assert.Equal(JsonValueKind.Null, otherOrder.GetProperty("cleaner").ValueKind);
+        Assert.Empty((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.GetAsync("/api/orders")).StatusCode);
+        foreach (var action in new[] { "start", "complete" })
+            Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        var completed = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Assigned Cleaner", completed.GetProperty("cleaner").GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task Assigned_cleaner_without_phone_is_returned_and_profile_updates_are_reflected()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("cleaner").GetProperty("phoneNumber").ValueKind);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsJsonAsync("/api/profile", new
+        { fullName = "Updated Cleaner", phoneNumber = "0909999999" })).StatusCode);
+        order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Updated Cleaner", order.GetProperty("cleaner").GetProperty("name").GetString());
+        Assert.Equal("0909999999", order.GetProperty("cleaner").GetProperty("phoneNumber").GetString());
+    }
+
+    [Fact]
+    public async Task Concurrent_overlapping_claims_by_one_cleaner_accept_exactly_one_job()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(3);
+        var ids = new List<int>();
+        for (var i = 0; i < 6; i++) ids.Add(await CreateAt(customer, start));
+        var responses = await Task.WhenAll(ids.Select(id => cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)));
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(5, responses.Count(response => response.StatusCode == HttpStatusCode.Conflict));
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal("Accepted", mine.GetProperty("status").GetString());
+        var available = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!;
+        Assert.DoesNotContain(available, job => ids.Contains(job.GetProperty("id").GetInt32()));
+        var orders = (await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!;
+        Assert.Equal(5, orders.Count(order => order.GetProperty("status").GetString() == "Pending"));
+    }
+
+    [Fact]
+    public async Task Active_job_reserves_its_slot_until_completion_and_old_accept_alias_cannot_bypass_it()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(3);
+        var first = await CreateAt(customer, start);
+        var overlap = await CreateAt(customer, start.AddHours(1));
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/bookings/{first}/accept", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{first}/start", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/bookings/{overlap}/accept", null)).StatusCode);
+        Assert.DoesNotContain((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!, job => job.GetProperty("id").GetInt32() == overlap);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{first}/complete", null)).StatusCode);
+        Assert.Contains((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!, job => job.GetProperty("id").GetInt32() == overlap);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/bookings/{overlap}/accept", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Concurrent_starts_of_separate_accepted_jobs_allow_one_active_job_at_a_time()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(3);
+        var first = await CreateAt(customer, start);
+        var second = await CreateAt(customer, start.AddHours(2));
+        foreach (var id in new[] { first, second })
+            Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+        var responses = await Task.WhenAll(new[] { first, second }.Select(id => cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null)));
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+        var jobs = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!;
+        var active = Assert.Single(jobs, job => job.GetProperty("status").GetString() == "InProgress");
+        var waiting = Assert.Single(jobs, job => job.GetProperty("status").GetString() == "Accepted");
+        Assert.Equal(JsonValueKind.Null, waiting.GetProperty("startedAt").ValueKind);
+        var waitingId = waiting.GetProperty("id").GetInt32();
+        var blocked = await cleaner.PutAsync($"/api/cleaner/jobs/{waitingId}/start", null);
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+        Assert.Contains("Bạn đang làm một ca khác", await blocked.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{active.GetProperty("id").GetInt32()}/complete", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{waitingId}/start", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Direct_cash_mode_retires_online_routes_without_creating_a_payment()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var anonymous = fixture.Client();
+        var id = await Create(customer);
+        var options = await customer.GetFromJsonAsync<JsonElement>("/api/payment/options");
+        Assert.True(options.GetProperty("cash").GetBoolean());
+        Assert.False(options.GetProperty("momo").GetBoolean());
+        Assert.False(options.GetProperty("payos").GetBoolean());
+        Assert.Equal("DirectCash", options.GetProperty("model").GetString());
+        foreach (var route in new[] { "/api/payment/momo", "/api/payment/payos", $"/api/payment/{id}/reconcile" })
+        {
+            Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync(route, new { bookingId = id })).StatusCode);
+            Assert.Equal(HttpStatusCode.Gone, (await customer.PostAsJsonAsync(route, new { bookingId = id, amount = 1 })).StatusCode);
+        }
+        foreach (var route in new[] { "/api/payment/momo-callback", "/api/payment/payos/webhook" })
+            Assert.Equal(HttpStatusCode.Gone, (await anonymous.PostAsJsonAsync(route, new { success = true, amount = 140000 })).StatusCode);
+        using var scope = fixture.Api.Services.CreateScope();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<AppDbContext>().Payments.AnyAsync(p => p.BookingId == id));
+    }
+
+    [Fact]
+    public async Task Customer_feedback_requires_completion_is_owned_and_never_marks_cash_received()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var other = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var anonymous = fixture.Client();
+        var id = await Create(customer);
+        var path = $"/api/orders/{id}/confirm-completion";
+        var feedback = new { rating = 4, review = "  Good work  ", paidAt = "2000-01-01", paymentStatus = "Paid" };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PutAsJsonAsync(path, feedback)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.PutAsJsonAsync(path, feedback)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cleaner.PutAsJsonAsync(path, feedback)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsJsonAsync(path, feedback)).StatusCode);
+        foreach (var action in new[] { "accept", "start", "complete" })
+            Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        var response = await customer.PutAsJsonAsync(path, feedback);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var confirmation = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var time = confirmation.GetProperty("customerConfirmedAt").GetDateTime();
+        Assert.Equal(DateTimeKind.Utc, time.Kind);
+        Assert.InRange(time, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(4, order.GetProperty("customerRating").GetInt32());
+        Assert.Equal("Good work", order.GetProperty("customerReview").GetString());
+        Assert.Equal("Unpaid", order.GetProperty("paymentStatus").GetString());
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("paidAt").ValueKind);
+        var repeat = await (await customer.PutAsJsonAsync(path, feedback)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(time, repeat.GetProperty("customerConfirmedAt").GetDateTime());
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsJsonAsync(path, new { rating = 1, review = "Changed" })).StatusCode);
+        var mine = Assert.Single((await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/mine"))!);
+        Assert.Equal(4, mine.GetProperty("customerRating").GetInt32());
+        var profileId = (await cleaner.GetFromJsonAsync<JsonElement>("/api/me")).GetProperty("cleanerProfile").GetProperty("id").GetInt32();
+        var cleaners = (await customer.GetFromJsonAsync<JsonElement[]>("/api/cleaners"))!;
+        Assert.Equal(4, Assert.Single(cleaners, row => row.GetProperty("id").GetInt32() == profileId).GetProperty("avgRating").GetDouble());
+        Assert.Equal(HttpStatusCode.NotFound, (await customer.PutAsJsonAsync("/api/orders/2147483647/confirm-completion", feedback)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(6, 0)]
+    [InlineData(5, 1001)]
+    public async Task Invalid_customer_rating_or_review_is_rejected(int rating, int length)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        foreach (var action in new[] { "accept", "start", "complete" }) await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await customer.PutAsJsonAsync($"/api/orders/{id}/confirm-completion", new { rating, review = new string('x', length) })).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("customerConfirmedAt").ValueKind);
+    }
+
+    [Fact]
+    public async Task Concurrent_customer_confirmations_preserve_one_rating_and_timestamp()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        foreach (var action in new[] { "accept", "start", "complete" }) await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null);
+        var responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => customer.PutAsJsonAsync(
+            $"/api/orders/{id}/confirm-completion", new { rating = 5, review = "Nice" })));
+        var times = new List<DateTime>();
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            times.Add((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("customerConfirmedAt").GetDateTime());
+        }
+        Assert.Single(times.Distinct());
+    }
+
+    [Fact]
+    public async Task Legacy_online_history_is_retained_and_cannot_be_relabelled_as_cash()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        foreach (var action in new[] { "accept", "start", "complete" }) await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null);
+        using (var scope = fixture.Api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Payments.Add(new CleanMate.Api.Domain.Entities.Payment { BookingId = id, Method = "momo", Status = "Pending", Amount = 140000, CreatedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(HttpStatusCode.Conflict, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/cash-payment", null)).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("momo", order.GetProperty("paymentMethod").GetString());
+        Assert.Equal("Pending", order.GetProperty("paymentStatus").GetString());
     }
 
     [Fact]

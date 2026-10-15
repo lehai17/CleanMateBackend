@@ -9,10 +9,15 @@ public class Booking
     public DateTime StartTime { get; set; }
     public decimal Price { get; set; }
     public string Address { get; set; } = string.Empty;
+    public string? ContactName { get; set; }
+    public string? ContactPhone { get; set; }
     public string? PaymentMethod { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public DateTime? CustomerConfirmedAt { get; set; }
+    public int? CustomerRating { get; set; }
+    public string? CustomerReview { get; set; }
     public Payment? Payment { get; set; }
 
     // Optional

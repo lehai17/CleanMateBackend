@@ -3,11 +3,13 @@
 @{
     ViewData["Title"] = "My Bookings";
     Layout = "_Layout";
+    var hasActiveJob = Model?.Any(booking => booking.Status == "InProgress") == true;
     // var bookings = ViewBag.Bookings as IEnumerable<dynamic>;
 }
 
 <div class="container mt-4">
     <h3 class="mb-4 text-center">Available and Assigned Bookings</h3>
+    <p>Ca trùng lịch đã nhận được ẩn. Hoàn thành ca đang làm trước khi bắt đầu ca tiếp theo.</p>
 
     @if (TempData["Message"] != null)
     {
@@ -26,7 +28,7 @@
                     <tr class="text-center">
                         <th>Order Code</th>
                         <th>Customer</th>
-                        <th>Start Time</th>
+                        <th>Lịch dự kiến (UTC+7)</th>
                         <th>Duration</th>
                         <th>Price (VND)</th>
                         <th>Address</th>
@@ -40,17 +42,20 @@
                     {
                         <tr>
                             <td class="text-center fw-bold">@b.OrderCode</td>
-                            <td>@b.CustomerName</td>
-                            <td>@b.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <div>@b.CustomerName</div>
+                                <small>@(b.CustomerPhone ?? "Chưa cập nhật số điện thoại")</small>
+                            </td>
+                            <td>@b.StartTime.ToUniversalTime().AddHours(7).ToString("dd/MM/yyyy HH:mm") → @b.StartTime.ToUniversalTime().AddHours(7 + b.DurationHours).ToString("dd/MM/yyyy HH:mm")</td>
                             <td class="text-center">@b.DurationHours h</td>
                             <td class="text-end">@b.Price.ToString("N0")</td>
                             <td>@b.Address</td>
                             <td>
-                                <div>@b.PaymentMethod</div>
-                                <div>@(b.PaymentStatus == "Paid" ? "Đã thanh toán" : "Chưa thanh toán")</div>
+                                <div>@(b.PaymentMethod == "cash" ? "Tiền mặt trực tiếp" : "Ghi nhận cũ cần kiểm tra")</div>
+                                <div>@(b.PaymentMethod == "cash" && b.PaymentStatus == "Paid" ? "Cleaner xác nhận đã nhận tiền mặt" : "Chưa có xác nhận nhận tiền mặt")</div>
                                 @if (b.PaidAt.HasValue)
                                 {
-                                    <small>Thu tiền: @b.PaidAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
+                                    <small>Thời gian xác nhận: @b.PaidAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
                                 }
                             </td>
                             <td class="text-center">
@@ -70,18 +75,27 @@
                                 {
                                     <small class="d-block">Hoàn thành: @b.CompletedAt.Value.ToUniversalTime().ToString("dd/MM/yyyy HH:mm") UTC</small>
                                 }
+                                @if (b.CustomerConfirmedAt.HasValue)
+                                {
+                                    <small class="d-block">Khách đã xác nhận hoàn thành · Đánh giá: @b.CustomerRating/5 sao</small>
+                                }
                             </td>
                             <td class="text-center">
                                 @if (b.Status is "Pending" or "Accepted" or "InProgress")
                                 {
                                     var action = b.Status == "Pending" ? "Accept" : b.Status == "Accepted" ? "Start" : "Complete";
                                     var label = b.Status == "Pending" ? "Nhận đơn" : b.Status == "Accepted" ? "Bắt đầu công việc" : "Hoàn thành công việc";
+                                    var blocked = b.Status == "Accepted" && hasActiveJob;
                                     <form asp-action="@action" method="post">
                                         <input type="hidden" name="id" value="@b.Id" />
-                                        <button type="submit" class="btn btn-sm btn-primary">
+                                        <button type="submit" disabled="@(blocked ? "disabled" : null)" class="btn btn-sm btn-primary">
                                             @label
                                         </button>
                                     </form>
+                                    @if (blocked)
+                                    {
+                                        <small>Hoàn thành ca đang làm trước khi bắt đầu ca này.</small>
+                                    }
                                 }
                                 else if (b.Status == "Completed" && b.PaymentStatus != "Paid" && b.PaymentMethod == "cash")
                                 {

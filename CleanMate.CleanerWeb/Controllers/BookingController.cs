@@ -17,21 +17,21 @@ public class BookingController(CleanerApiClient api) : Controller
     [HttpPost]
     public async Task<IActionResult> Accept(int id)
     {
-        TempData["Message"] = await api.AcceptAsync(id) ? "Nhận việc thành công." : "Đơn không còn khả dụng.";
+        TempData["Message"] = await api.AcceptAsync(id) ? "Nhận việc thành công." : api.LastJobError ?? "Đơn không còn khả dụng.";
         return RedirectToAction("List");
     }
 
     [HttpPost]
     public async Task<IActionResult> Start(int id)
     {
-        TempData["Message"] = await api.StartAsync(id) ? "Đã bắt đầu công việc." : "Không thể bắt đầu: trạng thái đơn đã thay đổi.";
+        TempData["Message"] = await api.StartAsync(id) ? "Đã bắt đầu công việc." : api.LastJobError ?? "Không thể bắt đầu: trạng thái đơn đã thay đổi.";
         return RedirectToAction("List");
     }
 
     [HttpPost]
     public async Task<IActionResult> Complete(int id)
     {
-        TempData["Message"] = await api.CompleteAsync(id) ? "Đã hoàn thành công việc." : "Không thể hoàn thành: trạng thái đơn đã thay đổi.";
+        TempData["Message"] = await api.CompleteAsync(id) ? "Đã hoàn thành công việc." : api.LastJobError ?? "Không thể hoàn thành: trạng thái đơn đã thay đổi.";
         return RedirectToAction("List");
     }
 

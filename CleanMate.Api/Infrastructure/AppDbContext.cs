@@ -26,11 +26,26 @@ public class AppDbContext : DbContext
         b.Entity<Booking>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Booking>().Property(p => p.StartedAt).HasConversion(utc);
         b.Entity<Booking>().Property(p => p.CompletedAt).HasConversion(utc);
+        b.Entity<Booking>().Property(p => p.CustomerConfirmedAt).HasConversion(utc);
+        b.Entity<Booking>().Property(p => p.CustomerReview).HasMaxLength(1000);
+        b.Entity<Booking>().Property(p => p.ContactName).HasMaxLength(200);
+        b.Entity<Booking>().Property(p => p.ContactPhone).HasMaxLength(40);
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)
             .HasForeignKey<Payment>(p => p.BookingId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<Payment>().HasIndex(p => p.BookingId).IsUnique();
+        b.Entity<Payment>().HasIndex(p => p.PayOsOrderCode).IsUnique();
+        b.Entity<Payment>().HasIndex(p => p.PayOsLinkId).IsUnique();
+        b.Entity<Payment>().Property(p => p.PayOsLinkId).HasMaxLength(64);
+        b.Entity<Payment>().Property(p => p.BankAccountNumber).HasMaxLength(64);
+        b.Entity<Payment>().Property(p => p.BankAccountName).HasMaxLength(256);
+        b.Entity<Payment>().Property(p => p.BankTransactionReference).HasMaxLength(128);
+        b.Entity<Payment>().HasIndex(p => new { p.ProviderPartnerCode, p.BankTransactionReference }).IsUnique();
+        b.Entity<Payment>().HasIndex(p => new { p.ProviderEnvironment, p.ProviderTransactionId }).IsUnique();
+        b.Entity<Payment>().Property(p => p.ProviderPartnerCode).HasMaxLength(50);
+        b.Entity<Payment>().Property(p => p.ProviderEnvironment).HasMaxLength(16);
+        b.Entity<Payment>().Property(p => p.PayUrl).HasMaxLength(2048);
         b.Entity<Payment>().Property(p => p.Method).HasMaxLength(16);
         b.Entity<Payment>().Property(p => p.Status).HasMaxLength(16);
         b.Entity<Payment>().Property(p => p.Amount).HasPrecision(18, 2);

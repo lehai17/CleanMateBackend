@@ -40,8 +40,26 @@ namespace CleanMate.Api.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CustomerConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomerRating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CustomerReview")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("DurationHours")
                         .HasColumnType("integer");
@@ -131,10 +149,22 @@ namespace CleanMate.Api.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("BankAccountName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("BankTransactionReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<int>("BookingId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("CollectedByCleanerId")
+                    b.Property<int?>("CollectedByCleanerId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
@@ -145,8 +175,30 @@ namespace CleanMate.Api.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.Property<DateTime>("PaidAt")
+                    b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayOsLinkId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long?>("PayOsOrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PayUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("ProviderEnvironment")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("ProviderPartnerCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("ProviderTransactionId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -156,6 +208,18 @@ namespace CleanMate.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("PayOsLinkId")
+                        .IsUnique();
+
+                    b.HasIndex("PayOsOrderCode")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderEnvironment", "ProviderTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderPartnerCode", "BankTransactionReference")
                         .IsUnique();
 
                     b.ToTable("Payments");

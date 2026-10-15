@@ -21,7 +21,8 @@ public static class PublicEndpoints
                     phoneNumber = profile.User!.PhoneNumber,
                     city = profile.City,
                     hourlyRate = profile.HourlyRate,
-                    avgRating = profile.AvgRating,
+                    avgRating = db.Bookings.Where(booking => booking.CleanerId == profile.Id && booking.CustomerConfirmedAt != null)
+                        .Average(booking => (double?)booking.CustomerRating) ?? profile.AvgRating,
                     bio = profile.Bio,
                     addressText = profile.AddressText
                 })
