@@ -907,3 +907,8 @@ Tôi xác nhận thay đổi quyền truy cập|I confirm the access change
 Lý do thay đổi truy cập cần từ 10 đến 1000 ký tự.|The reason for changing access must contain 10 to 1000 characters.
 Chỉ Admin được quản lý tài khoản khách và cleaner.|Only admins can manage customer and cleaner accounts.
 Tài khoản đã thay đổi. Danh sách đã được tải lại.|The account changed. The list has been refreshed.
+Thử kết nối lại|Retry connection
+Đăng nhập bằng tài khoản khác|Use another account
+Không thể xóa phiên đã lưu. Vui lòng thử lại.|Unable to clear the saved session. Please try again.
+Thử đăng xuất lại|Retry sign-out
+Phiên đăng nhập đã thay đổi. Vui lòng thử lại.|The sign-in session changed. Please try again.
