@@ -10,6 +10,8 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 
 - Web/app khách: đặt đơn với giá từ server, liên hệ, đổi/hủy lịch khi chưa được
   nhận, theo dõi ca, xác nhận hoàn thành và đánh giá.
+- Web/app khách có “Đặt lại” từ đơn hoàn thành/đã hủy: giữ địa chỉ, liên hệ, ghi chú;
+  chọn lịch mới và xác nhận giá hiện tại. Xem [REBOOKING.md](REBOOKING.md).
 - Web/app cleaner riêng: đăng ký/chờ duyệt, nhận ca, chống trùng lịch, bắt đầu/
   hoàn thành, xác nhận tiền mặt, lọc lịch/công việc và liên hệ khách.
 - Web Admin/Staff riêng: dashboard, duyệt cleaner, cấu hình giá, tra cứu đơn,
