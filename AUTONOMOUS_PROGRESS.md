@@ -53,10 +53,20 @@ customer 1372 modules, cleaner 1327. Native undefined-variable/hooks lint passed
 Found and fixed a textarea markup regression during testing before publishing.
 See UI_PREFERENCES.md for behavior, maintenance and translation boundaries.
 
-Next batch after publishing language-theme: review/fix staff access revocation.
-Current access toggle updates IsActive but does not increment TokenVersion, which
-could revive a pre-lock JWT after an account is unlocked. Add regression coverage
-for lock/unlock, stale/no-op changes and atomic rollback before publishing a fix.
+Language-theme is published and merged to main in all six repositories. Remote
+main SHAs verified against local main after publishing. All working trees clean
+before branching backend/admin to staff-session-revocation.
+
+## Batch 3: staff-session-revocation
+
+Reproduced an old pre-lock JWT becoming valid after unlock (expected 401, actual
+200). Fix increments TokenVersion on actual staff access transitions, atomically
+with access state and audit. True no-op does not revoke sessions or add an audit.
+Regressions cover concurrent/stale/no-op transitions, pre-lock email codes and
+audit rollback. Admin explanation is bilingual; browser lock/unlock/fresh-login
+checks pass in all 34 admin Playwright cases. Full backend suite passed 176/176;
+solution build has zero warnings/errors. Admin Node tests pass 9/9 and its test
+database cleanup marker is verified. Ready to publish backend/admin only.
 
 Next priorities after this batch: private cleaner verification documents/review,
 incident evidence/operational safeguards, push readiness, legacy role cleanup,
