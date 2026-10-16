@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<CleanerProfile> CleanerProfiles => Set<CleanerProfile>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -33,6 +34,16 @@ public class AppDbContext : DbContext
         b.Entity<Booking>().Property(p => p.RequestHash).HasMaxLength(64);
         b.Entity<Booking>().HasIndex(p => new { p.UserId, p.RequestId }).IsUnique();
         b.Entity<Booking>().HasIndex(p => p.UserId);
+        b.Entity<Notification>().HasOne<User>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Notification>().HasOne<Booking>().WithMany().HasForeignKey(n => n.BookingId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Notification>().Property(n => n.EventKey).HasMaxLength(128);
+        b.Entity<Notification>().Property(n => n.Title).HasMaxLength(200);
+        b.Entity<Notification>().Property(n => n.Message).HasMaxLength(1000);
+        b.Entity<Notification>().Property(n => n.CreatedAt).HasConversion(utc);
+        b.Entity<Notification>().Property(n => n.ReadAt).HasConversion(utc);
+        b.Entity<Notification>().HasIndex(n => new { n.UserId, n.EventKey }).IsUnique();
+        b.Entity<Notification>().HasIndex(n => new { n.UserId, n.Id });
+        b.Entity<Notification>().HasIndex(n => new { n.UserId, n.ReadAt });
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)

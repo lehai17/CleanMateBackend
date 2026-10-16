@@ -75,6 +75,10 @@ public static class CleanerJobEndpoints
             : await query.ExecuteUpdateAsync(setters => setters.SetProperty(b => b.Status, nextStatus)
                 .SetProperty(b => b.CompletedAt, (DateTime?)now));
         if (count != 1) return Results.Conflict(new { message = "Trạng thái đơn đã thay đổi hoặc không cho phép thao tác này. Vui lòng tải lại." });
+        BookingNotifications.Add(db, booking.UserId, id, $"{nextStatus}:{id}",
+            nextStatus == BookingStatuses.InProgress ? "Ca làm đã bắt đầu" : "Ca làm đã hoàn thành",
+            nextStatus == BookingStatuses.InProgress ? $"Cleaner đã bắt đầu ca CM{id}." : $"Ca CM{id} đã hoàn thành. Bạn có thể xác nhận và đánh giá trong đơn hàng.");
+        await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return Results.Ok(new { id, status = nextStatus });
     }
@@ -103,6 +107,9 @@ public static class CleanerJobEndpoints
             .ExecuteUpdateAsync(setters => setters.SetProperty(b => b.CleanerId, (int?)cleaner.Id)
                 .SetProperty(b => b.Status, BookingStatuses.Accepted));
         if (count != 1) return Results.Conflict(new { message = "Đơn không còn khả dụng để nhận." });
+        BookingNotifications.Add(db, booking.UserId, id, $"Accepted:{id}", "Cleaner đã nhận đơn", $"Đơn CM{id} đã có cleaner nhận. Xem thông tin liên hệ trong đơn hàng.");
+        BookingNotifications.Add(db, cleaner.UserId, id, $"Assigned:{id}", "Đã nhận ca làm", $"Bạn đã nhận ca CM{id}. Xem lịch và thông tin liên hệ trong công việc của bạn.", true);
+        await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return Results.Ok(new { message = "Nhận việc thành công." });
     }
