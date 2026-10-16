@@ -1,0 +1,23 @@
+:root { color-scheme: light; --ui-background:#f8fafc; --ui-surface:#fff; --ui-text:#172d2a; --ui-muted:#52665e; --ui-border:#cadbd5; }
+:root[data-theme="dark"] { color-scheme:dark; --ui-background:#101b19; --ui-surface:#192a25; --ui-text:#edf7f2; --ui-muted:#b6cdc1; --ui-border:#486359; }
+.ui-preferences { position:relative; z-index:40; display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:12px; padding:8px 20px; background:var(--ui-surface); color:var(--ui-text); border-bottom:1px solid var(--ui-border); font:13px system-ui,sans-serif; }
+.ui-preferences label { display:flex; align-items:center; gap:8px; font-weight:500; }
+.ui-preferences select { width:auto; padding:6px 8px; border:1px solid var(--ui-border); border-radius:6px; color:var(--ui-text); background:var(--ui-surface); }
+.ui-preferences select:focus-visible { outline:3px solid #10b981; outline-offset:2px; }
+html[data-theme="dark"] body { background:var(--ui-background); color:var(--ui-text); }
+html[data-theme="dark"] :is(.bg-white,.bg-white\/95,.bg-gray-50,.bg-gray-100,.bg-slate-50,.bg-emerald-50,.bg-green-50,.bg-teal-50,.card,.panel,.topbar,.login-main,dialog,th) { background:var(--ui-surface); }
+html[data-theme="dark"] :is(.text-gray-900,.text-gray-800,.text-gray-700,.text-slate-900,.text-slate-800,.text-slate-700,.text-green-900,.text-emerald-900,.text-emerald-800,.text-teal-900,.text-black,dialog,.card strong) { color:var(--ui-text); }
+html[data-theme="dark"] :is(.text-gray-600,.text-gray-500,.text-gray-400,.text-slate-600,.text-slate-500,.muted,.eyebrow,td small,.card small,th,.empty,.loading) { color:var(--ui-muted); }
+html[data-theme="dark"] :is(input,textarea,select,button.secondary) { background:var(--ui-surface); color:var(--ui-text); border-color:var(--ui-border); }
+html[data-theme="dark"] :is(.border,.border-gray-100,.border-gray-200,.border-gray-300,.border-slate-200,.border-green-100,.border-emerald-100,.card,.panel,.topbar,td,th,dialog) { border-color:var(--ui-border); }
+html[data-theme="dark"] :is(.text-emerald-600,.text-emerald-700,.text-green-600,.text-green-700,.text-teal-600) { color:#6ee7b7; }
+html[data-theme="dark"] :is(.bg-gray-200,.bg-gray-300,.hover\:bg-gray-200:hover,.hover\:bg-gray-300:hover) { background:#2b443b; }
+html[data-theme="dark"] :is(.text-red-600,.text-red-700,.text-red-800) { color:#fca5a5; }
+html[data-theme="dark"] :is(.text-amber-600,.text-amber-700,.text-yellow-700) { color:#fde68a; }
+html[data-theme="dark"] :is(.text-blue-600,.text-blue-700) { color:#bfdbfe; }
+html[data-theme="dark"] :is(.alert,.bg-red-50) { background:#421f25; color:#fecaca; border-color:#93515d; }
+html[data-theme="dark"] :is(.success,.status.Approved,.status.Completed,.role) { background:#154537; color:#a7f3d0; border-color:#486359; }
+html[data-theme="dark"] :is(.status.Pending,.status.NeedsInfo,.bg-yellow-50,.bg-amber-50) { background:#413419; color:#fde68a; }
+html[data-theme="dark"] :is(.status.Rejected,.status.Cancelled) { background:#421f25; color:#fecaca; }
+html[data-theme="dark"] :is(.status.Accepted,.status.InProgress) { background:#1e3651; color:#bfdbfe; }
+@media(max-width:480px) { .ui-preferences { padding:8px; gap:8px; justify-content:center; } }

@@ -29,8 +29,9 @@ configuration must remain an explicit setup requirement, not a claim of live mai
 Validation completed at 2026-10-16 13:36 UTC: 171 backend tests, 38 React tests,
 50 customer-web, 30 admin and 28 cleaner-web Playwright cases passed. Test database
 cleanup verified. Admin/cleaner Node suites pass (5/9); Android exports passed
-(customer 1369 modules, cleaner 1318). Publishing account-recovery to all six repos
-after these checks. See ACCOUNT_RECOVERY.md for SMTP/restart limitations.
+(customer 1369 modules, cleaner 1318). Account-recovery was pushed and merged to
+main in all six repositories; remote main SHAs were verified before branching
+language-theme. See ACCOUNT_RECOVERY.md for SMTP/restart limitations.
 
 ## Next batch: language-theme
 
@@ -39,6 +40,23 @@ five client applications. Translate interface text while preserving user-entered
 content, input values, service keys, prices and in-progress forms. Test persistence,
 state preservation, language-specific labels and dark-theme contrast in browser;
 export native bundles and retain the physical-device testing limitation.
+
+Implementation: authored shared phrase catalog; local validated preferences,
+React render adapters, native themed/translated primitives and navigation,
+standalone portal DOM adapters with private-content exclusions. No API or database
+schema change. Semantic palette contrast and preference parsing tests pass;
+41 React tests pass. English cash booking passed on both browser viewports.
+Full regression passed: admin 34, cleaner 32 and customer 54 Playwright cases,
+zero skipped/flaky/failures. Temporary database cleanup verified. Node suites:
+admin 9, cleaner web 13, customer mobile 8, cleaner mobile 11. Android exports:
+customer 1372 modules, cleaner 1327. Native undefined-variable/hooks lint passed.
+Found and fixed a textarea markup regression during testing before publishing.
+See UI_PREFERENCES.md for behavior, maintenance and translation boundaries.
+
+Next batch after publishing language-theme: review/fix staff access revocation.
+Current access toggle updates IsActive but does not increment TokenVersion, which
+could revive a pre-lock JWT after an account is unlocked. Add regression coverage
+for lock/unlock, stale/no-op changes and atomic rollback before publishing a fix.
 
 Next priorities after this batch: private cleaner verification documents/review,
 incident evidence/operational safeguards, push readiness, legacy role cleanup,
