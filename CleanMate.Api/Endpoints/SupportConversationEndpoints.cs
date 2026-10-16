@@ -50,6 +50,7 @@ public static class SupportConversationEndpoints
             if (replay is not null) return replay;
             if (management && ticket.Status == "Resolved")
                 return Results.Conflict(new { message = "Mở lại yêu cầu trước khi gửi trao đổi mới." });
+            var recipients = management ? [] : await ManagementNotifications.RecipientsAsync(db,actor);
             await using var transaction = await db.Database.BeginTransactionAsync();
             var now = DateTime.UtcNow;
             var reopened = !management && ticket.Status == "Resolved";
@@ -70,6 +71,9 @@ public static class SupportConversationEndpoints
                     Details=JsonSerializer.Serialize(new { messageId=message.Id,fromStaff=management,bodyLength=body.Length,reopened }) });
                 if (management) db.Notifications.Add(new Notification { UserId=ticket.ReporterId,BookingId=ticket.BookingId,Target="Support",
                     EventKey=$"SupportMessage:{message.Id}",Title="Có tin nhắn hỗ trợ mới",Message=$"Nhân viên đã trả lời HT{id} cho CM{ticket.BookingId}. Mở Hỗ trợ để đọc trao đổi.",CreatedAt=now });
+                else ManagementNotifications.Add(db,recipients,$"ManagerSupportMessage:{message.Id}","Support",id,
+                    reopened ? "Yêu cầu hỗ trợ đã được mở lại" : "Có tin nhắn bổ sung từ người báo",
+                    $"Người báo đã gửi thêm tin cho HT{id}, đơn CM{ticket.BookingId}. Mở Hỗ trợ để đọc trao đổi.",ticket.BookingId);
                 await db.SaveChangesAsync();await transaction.CommitAsync();
                 return Results.Ok(new { message.Id,version=ticket.Version+1,status=reopened ? "Open" : ticket.Status });
             }

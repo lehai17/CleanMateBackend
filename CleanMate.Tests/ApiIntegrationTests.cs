@@ -100,6 +100,90 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private const string Password = "CleanMate-test-123!";
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Cleaner_applications_notify_active_managers_and_open_exact_profiles(bool fromSignup)
+    {
+        var manager=await Staff();var inactive=await Staff();using var staff=fixture.Client(manager.Token);using var admin=fixture.Client(fixture.AdminToken);
+        Assert.Equal(HttpStatusCode.OK,(await admin.PutAsJsonAsync($"/api/management/staff/{inactive.Id}/access",new{isActive=false,expectedActive=true})).StatusCode);
+        var account=await Register();using var owner=fixture.Client(account.Token);int profileId;
+        if(fromSignup){using var guest=fixture.Client();var response=await guest.PostAsJsonAsync("/api/auth/register",new{email=Guid.NewGuid()+"@example.test",fullName="New Applicant",password=Password,role="Cleaner"});Assert.Equal(HttpStatusCode.OK,response.StatusCode);profileId=(await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("user").GetProperty("cleanerProfile").GetProperty("id").GetInt32();}
+        else{var response=await owner.PostAsJsonAsync("/api/profile/register-cleaner",new{city="Ha Noi",bio="Original application",addressText="Test address",hourlyRate=120000});Assert.Equal(HttpStatusCode.OK,response.StatusCode);profileId=(await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("cleanerProfile").GetProperty("id").GetInt32();}
+        var inbox=await staff.GetFromJsonAsync<JsonElement>("/api/notifications");var item=Assert.Single(inbox.GetProperty("items").EnumerateArray(),n=>n.GetProperty("targetId").ValueKind==JsonValueKind.Number&&n.GetProperty("targetId").GetInt32()==profileId&&n.GetProperty("target").GetString()=="Applications");
+        Assert.Equal(HttpStatusCode.NotFound,(await owner.PutAsync($"/api/notifications/{item.GetProperty("id").GetInt32()}/read",null)).StatusCode);
+        var result=await staff.GetFromJsonAsync<JsonElement>($"/api/management/applications?status=All&search=HS{profileId}");Assert.Equal(1,result.GetProperty("total").GetInt32());Assert.Equal(profileId,result.GetProperty("items")[0].GetProperty("id").GetInt32());
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var key=$"ApplicationSubmitted:{profileId}:initial";
+        Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==manager.Id&&n.EventKey==key));Assert.Equal(0,await db.Notifications.CountAsync(n=>n.UserId==inactive.Id&&n.EventKey==key));Assert.Equal(0,await db.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==key));
+        Assert.True(await db.Notifications.AnyAsync(n=>n.UserId!=manager.Id&&n.EventKey==key));
+    }
+
+    [Fact]
+    public async Task Each_successful_application_resubmission_notifies_once_despite_concurrent_retries()
+    {
+        var manager=await Staff();using var staff=fixture.Client(manager.Token);var account=await Register();using var owner=fixture.Client(account.Token);
+        var dto=new{city="Ha Noi",bio="Updated application",addressText="Test address",hourlyRate=120000};
+        var created=await owner.PostAsJsonAsync("/api/profile/register-cleaner",dto);var id=(await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("cleanerProfile").GetProperty("id").GetInt32();
+        for(var cycle=1;cycle<=2;cycle++){
+            Assert.Equal(HttpStatusCode.OK,(await staff.PutAsJsonAsync($"/api/management/applications/{id}/review",new{status="NeedsInfo",reason="Cần bổ sung thông tin địa chỉ."})).StatusCode);
+            var results=await Task.WhenAll(owner.PutAsJsonAsync("/api/profile/cleaner-application",dto),owner.PutAsJsonAsync("/api/profile/cleaner-application",dto));Assert.Single(results,r=>r.StatusCode==HttpStatusCode.OK);Assert.Single(results,r=>r.StatusCode==HttpStatusCode.Conflict);
+            using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();Assert.Equal(cycle,await db.Notifications.CountAsync(n=>n.UserId==manager.Id&&n.EventKey.StartsWith($"ApplicationResubmitted:{id}:")));
+        }
+    }
+
+    [Fact]
+    public async Task Support_incoming_notifications_deduplicate_and_do_not_echo_staff_replies()
+    {
+        var manager=await Staff();using var staff=fixture.Client(manager.Token);var account=await Register();using var owner=fixture.Client(account.Token);var bookingId=await Create(owner);
+        var report=new{bookingId,category="Other",description="Private original report text.",requestId=Guid.NewGuid()};var reports=await Task.WhenAll(owner.PostAsJsonAsync("/api/support",report),owner.PostAsJsonAsync("/api/support",report));foreach(var r in reports)Assert.Equal(HttpStatusCode.OK,r.StatusCode);var id=(await reports[0].Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        var message=new{body="Private follow-up text.",requestId=Guid.NewGuid()};var messages=await Task.WhenAll(owner.PostAsJsonAsync($"/api/support/{id}/messages",message),owner.PostAsJsonAsync($"/api/support/{id}/messages",message));foreach(var r in messages)Assert.Equal(HttpStatusCode.OK,r.StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await staff.PostAsJsonAsync($"/api/management/support/{id}/messages",new{body="Staff reply without echo",requestId=Guid.NewGuid()})).StatusCode);
+        using(var scope=fixture.Api.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var rows=await db.Notifications.Where(n=>n.UserId==manager.Id&&n.Target=="Support"&&n.TargetId==id).ToListAsync();Assert.Equal(2,rows.Count);foreach(var row in rows){Assert.DoesNotContain(report.description,row.Message);Assert.DoesNotContain(message.body,row.Message);Assert.DoesNotContain(account.Email,row.Message);}Assert.Equal(1,rows.Count(n=>n.EventKey==$"ManagerSupportCreated:{id}"));}
+        Assert.Equal(HttpStatusCode.OK,(await staff.PutAsJsonAsync($"/api/management/support/{id}",new{status="Resolved",response="Đã hướng dẫn và kiểm tra thông tin.",version=3})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await owner.PostAsJsonAsync($"/api/support/{id}/messages",new{body="Vấn đề vẫn chưa được giải quyết.",requestId=Guid.NewGuid()})).StatusCode);
+        var inbox=await staff.GetFromJsonAsync<JsonElement>("/api/notifications");Assert.Contains(inbox.GetProperty("items").EnumerateArray(),n=>n.GetProperty("targetId").GetInt32()==id&&n.GetProperty("title").GetString()=="Yêu cầu hỗ trợ đã được mở lại");
+    }
+
+    [Theory]
+    [InlineData("signup")]
+    [InlineData("profile")]
+    [InlineData("resubmit")]
+    [InlineData("ticket")]
+    [InlineData("message")]
+    public async Task Failed_management_notification_rolls_back_the_originating_operation(string operation)
+    {
+        var manager=await Staff();using var staff=fixture.Client(manager.Token);var account=await Register();using var owner=fixture.Client(account.Token);using var guest=fixture.Client();
+        var email=Guid.NewGuid()+"@example.test";var profile=0;var booking=0;var ticket=0;var requestId=Guid.NewGuid();var dto=new{city="Ha Noi",bio="Original application",addressText="Test address",hourlyRate=120000};
+        if(operation=="resubmit"){var created=await owner.PostAsJsonAsync("/api/profile/register-cleaner",dto);profile=(await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("cleanerProfile").GetProperty("id").GetInt32();Assert.Equal(HttpStatusCode.OK,(await staff.PutAsJsonAsync($"/api/management/applications/{profile}/review",new{status="NeedsInfo",reason="Cần bổ sung hồ sơ để kiểm tra."})).StatusCode);}
+        if(operation is "ticket" or "message")booking=await Create(owner);
+        if(operation=="message")ticket=await Report(owner,booking);
+        Task<HttpResponseMessage> Send()=>operation switch{
+            "signup"=>guest.PostAsJsonAsync("/api/auth/register",new{email,fullName="Atomic Applicant",password=Password,role="Cleaner"}),
+            "profile"=>owner.PostAsJsonAsync("/api/profile/register-cleaner",dto),
+            "resubmit"=>owner.PutAsJsonAsync("/api/profile/cleaner-application",dto),
+            "ticket"=>owner.PostAsJsonAsync("/api/support",new{bookingId=booking,category="Other",description="Atomic support report test.",requestId}),
+            _=>owner.PostAsJsonAsync($"/api/support/{ticket}/messages",new{body="Atomic reporter follow-up",requestId})};
+        var prefix=operation switch{"signup" or "profile"=>"ApplicationSubmitted:","resubmit"=>"ApplicationResubmitted:","ticket"=>"ManagerSupportCreated:",_=>"ManagerSupportMessage:"};
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var constraint="RejectManagerNotice_"+Guid.NewGuid().ToString("N");var sql=$"ALTER TABLE [Notifications] WITH NOCHECK ADD CONSTRAINT [{constraint}] CHECK ([UserId] <> {manager.Id} OR [EventKey] NOT LIKE '{prefix}%')";await db.Database.ExecuteSqlRawAsync(sql);
+        try{
+            Assert.Equal(HttpStatusCode.InternalServerError,(await Send()).StatusCode);
+            if(operation=="signup")Assert.False(await db.Users.AnyAsync(u=>u.Email==email));
+            if(operation=="profile")Assert.False(await db.CleanerProfiles.AnyAsync(p=>p.UserId==account.Id));
+            if(operation=="resubmit")Assert.Equal("NeedsInfo",await db.CleanerProfiles.Where(p=>p.Id==profile).Select(p=>p.ReviewStatus).SingleAsync());
+            if(operation=="ticket")Assert.False(await db.SupportTickets.AnyAsync(t=>t.ReporterId==account.Id));
+            if(operation=="message"){Assert.False(await db.SupportMessages.AnyAsync(m=>m.TicketId==ticket));Assert.Equal(1,await db.SupportTickets.Where(t=>t.Id==ticket).Select(t=>t.Version).SingleAsync());}
+        }finally{var drop=$"ALTER TABLE [Notifications] DROP CONSTRAINT [{constraint}]";await db.Database.ExecuteSqlRawAsync(drop);}
+        Assert.Equal(HttpStatusCode.OK,(await Send()).StatusCode);Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==manager.Id&&n.EventKey.StartsWith(prefix)));
+    }
+
+    [Fact]
+    public async Task Concurrent_cleaner_signups_deliver_each_manager_event_without_user_lock_cycles()
+    {
+        var manager=await Staff();using var guest=fixture.Client();
+        var results=await Task.WhenAll(Enumerable.Range(0,2).Select(_=>guest.PostAsJsonAsync("/api/auth/register",new{email=Guid.NewGuid()+"@example.test",fullName="Concurrent Cleaner",password=Password,role="Cleaner"})));foreach(var result in results)Assert.Equal(HttpStatusCode.OK,result.StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();Assert.Equal(2,await db.Notifications.CountAsync(n=>n.UserId==manager.Id&&n.Target=="Applications"));
+    }
+
     private static async Task<int> Report(HttpClient reporter,int bookingId)
     {
         var response=await reporter.PostAsJsonAsync("/api/support",new{bookingId,category="Other",description="Cần hỗ trợ cho công việc đã đặt.",requestId=Guid.NewGuid()});

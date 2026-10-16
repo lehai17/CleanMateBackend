@@ -50,7 +50,16 @@ public class AuthService
         }
 
         db.Users.Add(user);
-        await db.SaveChangesAsync();
+        if (user.CleanerProfile is null) await db.SaveChangesAsync();
+        else
+        {
+            var recipients = await ManagementNotifications.RecipientsAsync(db,0);
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            await db.SaveChangesAsync();
+            ManagementNotifications.Add(db,recipients,$"ApplicationSubmitted:{user.CleanerProfile.Id}:initial","Applications",user.CleanerProfile.Id,
+                "Có hồ sơ cleaner mới",$"Hồ sơ HS{user.CleanerProfile.Id} đang chờ xét duyệt. Mở Hồ sơ cleaner để kiểm tra.");
+            await db.SaveChangesAsync();await transaction.CommitAsync();
+        }
         return _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
     }
 

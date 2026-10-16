@@ -57,6 +57,8 @@ public static class ProfileEndpoints
             }
             if (user.Role != UserRole.Customer) return Results.Forbid();
 
+            var recipients = await ManagementNotifications.RecipientsAsync(db,user.Id);
+            await using var transaction = await db.Database.BeginTransactionAsync();
             user.CleanerProfile = new CleanerProfile
             {
                 UserId = user.Id,
@@ -70,6 +72,9 @@ public static class ProfileEndpoints
             };
 
             await db.SaveChangesAsync();
+            ManagementNotifications.Add(db,recipients,$"ApplicationSubmitted:{user.CleanerProfile.Id}:initial","Applications",user.CleanerProfile.Id,
+                "Có hồ sơ cleaner mới",$"Hồ sơ HS{user.CleanerProfile.Id} đang chờ xét duyệt. Mở Hồ sơ cleaner để kiểm tra.");
+            await db.SaveChangesAsync();await transaction.CommitAsync();
             return Results.Ok(currentUserService.MapUser(user));
         });
 
@@ -82,6 +87,8 @@ public static class ProfileEndpoints
             if (string.IsNullOrWhiteSpace(dto.City) || dto.City.Length > 200 || dto.Bio?.Length > 2000 || dto.AddressText?.Length > 500)
                 return Results.BadRequest(new { message = "Vui lòng nhập thành phố, giới thiệu tối đa 2000 ký tự và địa chỉ tối đa 500 ký tự." });
             var oldStatus = user.CleanerProfile.ReviewStatus;
+            var recipients = await ManagementNotifications.RecipientsAsync(db,user.Id);
+            await using var transaction = await db.Database.BeginTransactionAsync();
             var count = await db.CleanerProfiles.Where(c => c.Id == user.CleanerProfile.Id && c.ReviewStatus == oldStatus)
                 .ExecuteUpdateAsync(s => s.SetProperty(c => c.ReviewStatus, "Pending").SetProperty(c => c.ReviewReason, (string?)null)
                     .SetProperty(c => c.Bio, dto.Bio == null ? "" : dto.Bio.Trim()).SetProperty(c => c.City, dto.City.Trim())
@@ -89,6 +96,9 @@ public static class ProfileEndpoints
                     .SetProperty(c => c.ReviewedAt, (DateTime?)null).SetProperty(c => c.ReviewedById, (int?)null)
                     .SetProperty(c => c.SubmittedAt, (DateTime?)DateTime.UtcNow));
             if (count != 1) return Results.Conflict(new { message = "Hồ sơ đã thay đổi. Vui lòng tải lại." });
+            ManagementNotifications.Add(db,recipients,$"ApplicationResubmitted:{user.CleanerProfile.Id}:{Guid.NewGuid():N}","Applications",user.CleanerProfile.Id,
+                "Cleaner đã gửi lại hồ sơ",$"Hồ sơ HS{user.CleanerProfile.Id} đã bổ sung thông tin và chờ xét duyệt lại.");
+            await db.SaveChangesAsync();await transaction.CommitAsync();
             db.ChangeTracker.Clear();
             return Results.Ok(users.MapUser((await users.GetCurrentUserAsync(db, principal))!));
         });

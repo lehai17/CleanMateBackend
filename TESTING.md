@@ -7,10 +7,10 @@ Authentication throttling and proxy/password-bound checks are documented in
 [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
 an isolated SQL database and low limits; functional suites use higher limits.
 
-Verified on 16 October 2026: 120 backend tests passed; build completed with zero
+Verified on 16 October 2026: 130 backend tests passed; build completed with zero
 warnings/errors. The companion suites passed 31 frontend tests, 40 customer-web
-Playwright cases, 18 admin Playwright cases, 24 cleaner-web Playwright cases,
-9 cleaner-web Node tests, 7 cleaner-mobile tests and 2 admin server integration tests.
+Playwright cases, 22 admin Playwright cases, 24 cleaner-web Playwright cases,
+9 cleaner-web Node tests, 7 cleaner-mobile tests and 5 admin Node tests.
 
 From backend/:
 
