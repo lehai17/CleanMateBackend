@@ -5,6 +5,11 @@ public class CleanerProfile
     public int Id { get; set; }
     public int UserId { get; set; }
     public User? User { get; set; }
+    public string ReviewStatus { get; set; } = "Pending";
+    public string? ReviewReason { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ReviewedById { get; set; }
 
     public string Bio { get; set; } = "";
     public decimal HourlyRate { get; set; } = 120000; // VND/h

@@ -33,7 +33,7 @@ public class CurrentUserService
     public async Task<CleanerProfile?> GetCleanerProfileAsync(AppDbContext db, ClaimsPrincipal principal)
     {
         var user = await GetCurrentUserAsync(db, principal);
-        return user?.Role == UserRole.Cleaner ? user.CleanerProfile : null;
+        return user?.Role == UserRole.Cleaner && user.IsActive && user.CleanerProfile?.ReviewStatus == "Approved" ? user.CleanerProfile : null;
     }
 
     public UserResponseDto MapUser(User user)
@@ -46,7 +46,9 @@ public class CurrentUserService
                 user.CleanerProfile.City,
                 user.CleanerProfile.AddressText,
                 user.CleanerProfile.HourlyRate,
-                user.CleanerProfile.AvgRating);
+                user.CleanerProfile.AvgRating,
+                user.CleanerProfile.ReviewStatus,
+                user.CleanerProfile.ReviewReason);
 
         return new UserResponseDto(
             user.Id,
@@ -55,7 +57,7 @@ public class CurrentUserService
             user.Role.ToString(),
             user.PhoneNumber,
             user.Address,
-            user.CleanerProfile is not null,
+            user.Role == UserRole.Cleaner && user.CleanerProfile?.ReviewStatus == "Approved",
             cleanerProfile);
     }
 

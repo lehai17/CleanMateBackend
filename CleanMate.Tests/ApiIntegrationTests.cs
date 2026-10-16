@@ -26,6 +26,7 @@ public sealed class ApiFixture : IAsyncLifetime
     public WebApplication Portal { get; private set; } = null!;
     public Uri ApiUrl => new(Api.Urls.Single());
     public Uri PortalUrl => new(Portal.Urls.Single());
+    public string AdminToken { get; private set; } = "";
 
     public async Task InitializeAsync()
     {
@@ -50,8 +51,15 @@ public sealed class ApiFixture : IAsyncLifetime
             builder.WebHost.UseUrls("http://127.0.0.1:0");
         });
         using (var scope = Api.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Database.MigrateAsync();
+            await CleanMate.Api.Services.AdminBootstrap.CreateAsync(db, "admin@integration.test", "CleanMate-admin-test-123!", "Test Administrator");
+        }
         await Api.StartAsync();
+        using (var client = Client())
+            AdminToken = (await (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@integration.test", password = "CleanMate-admin-test-123!" }))
+                .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;
         Portal = CleanerApplication.Build([], builder =>
         {
             builder.Environment.ApplicationName = typeof(CleanerApplication).Assembly.GetName().Name!;
@@ -118,6 +126,12 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
             new { fullName = "Integration User", email, password = Password, role });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var auth = await response.Content.ReadFromJsonAsync<JsonElement>();
+        if (role == "Cleaner")
+        {
+            using var admin = fixture.Client(fixture.AdminToken);
+            var profile = auth.GetProperty("user").GetProperty("cleanerProfile").GetProperty("id").GetInt32();
+            Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/applications/{profile}/review", new { status = "Approved" })).StatusCode);
+        }
         return (auth.GetProperty("token").GetString()!, auth.GetProperty("user").GetProperty("id").GetInt32(), email);
     }
 
@@ -141,6 +155,182 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var response = await client.PostAsJsonAsync("/api/bookings", Booking(startTime: start, durationHours: hours));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    private async Task<(string Token, int Id, string Email)> Staff()
+    {
+        using var admin = fixture.Client(fixture.AdminToken);
+        var email = Guid.NewGuid().ToString("N") + "@example.test";
+        var created = await admin.PostAsJsonAsync("/api/management/staff", new { fullName = "Integration Staff", email, password = "Staff-integration-password-123!" });
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        using var guest = fixture.Client();
+        var login = await guest.PostAsJsonAsync("/api/auth/login", new { email, password = "Staff-integration-password-123!" });
+        return ((await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!, id, email);
+    }
+
+    [Fact]
+    public async Task Public_registration_never_grants_staff_and_management_uses_server_permissions()
+    {
+        using var guest = fixture.Client();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.GetAsync("/api/management/dashboard")).StatusCode);
+        using var customer = fixture.Client((await Register("Staff")).Token);
+        Assert.Equal("Customer", (await customer.GetFromJsonAsync<JsonElement>("/api/me")).GetProperty("role").GetString());
+        foreach (var path in new[] { "dashboard", "applications", "orders", "services", "staff", "audit" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/management/" + path)).StatusCode);
+        using var staff = fixture.Client((await Staff()).Token);
+        Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync("/api/management/dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/management/staff")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.PostAsJsonAsync("/api/management/staff", new { fullName = "Fake", email = "fake@example.test", password = "Fake-password-123!" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.PutAsJsonAsync("/api/management/services/cleaning", new
+        { name = "Cleaning", hourlyRate = 99000, minHours = 1, maxHours = 8, isActive = true, version = 1 })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Staff_requests_more_information_and_approval_is_atomic_with_notification_and_audit()
+    {
+        using var guest = fixture.Client();
+        var response = await guest.PostAsJsonAsync("/api/auth/register", new { fullName = "Pending Applicant", email = Guid.NewGuid().ToString("N") + "@example.test", password = Password, role = "Cleaner" });
+        var auth = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var profileId = auth.GetProperty("user").GetProperty("cleanerProfile").GetProperty("id").GetInt32();
+        using var applicant = fixture.Client(auth.GetProperty("token").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await applicant.GetAsync("/api/cleaner/jobs/available")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await applicant.PutAsJsonAsync("/api/cleaner/profile", new { fullName = "Bypass", phoneNumber = "0901234567", city = "Ha Noi", bio = "", addressText = "", hourlyRate = 1 })).StatusCode);
+        using var staff = fixture.Client((await Staff()).Token);
+        var path = $"/api/management/applications/{profileId}/review";
+        Assert.Equal(HttpStatusCode.BadRequest, (await staff.PutAsJsonAsync(path, new { status = "NeedsInfo" })).StatusCode);
+        var longReason = new string('ệ', 1000);
+        Assert.Equal(HttpStatusCode.OK, (await staff.PutAsJsonAsync(path, new { status = "NeedsInfo", reason = longReason })).StatusCode);
+        var pendingMe = await applicant.GetFromJsonAsync<JsonElement>("/api/me");
+        Assert.Equal(longReason, pendingMe.GetProperty("cleanerProfile").GetProperty("reviewReason").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await applicant.GetAsync("/api/cleaner/jobs/available")).StatusCode);
+        var resubmitted = await applicant.PutAsJsonAsync("/api/profile/cleaner-application", new { city = "Ha Noi", bio = "Updated experience", addressText = "Contact address", hourlyRate = 120000 });
+        Assert.Equal(HttpStatusCode.OK, resubmitted.StatusCode);
+        var reviews = await Task.WhenAll(staff.PutAsJsonAsync(path, new { status = "Approved" }), staff.PutAsJsonAsync(path, new { status = "Approved" }));
+        Assert.Single(reviews, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Single(reviews, r => r.StatusCode == HttpStatusCode.Conflict);
+        var me = await applicant.GetFromJsonAsync<JsonElement>("/api/me");
+        Assert.Equal("Cleaner", me.GetProperty("role").GetString());
+        Assert.True(me.GetProperty("isCleaner").GetBoolean());
+        Assert.Equal(HttpStatusCode.OK, (await applicant.GetAsync("/api/cleaner/jobs/available")).StatusCode);
+        var notices = await applicant.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.Equal(2, notices.GetProperty("items").GetArrayLength());
+        Assert.All(notices.GetProperty("items").EnumerateArray(), n => Assert.Equal("Profile", n.GetProperty("target").GetString()));
+        var audit = await staff.GetFromJsonAsync<JsonElement[]>("/api/management/audit");
+        Assert.Equal(2, audit!.Count(a => a.GetProperty("target").GetString() == $"Cleaner:{profileId}"));
+        var needsInfoAudit = audit!.Single(a => a.GetProperty("target").GetString() == $"Cleaner:{profileId}" &&
+            a.GetProperty("details").GetString()!.Contains("NeedsInfo"));
+        using var details = JsonDocument.Parse(needsInfoAudit.GetProperty("details").GetString()!);
+        Assert.Equal(longReason, details.RootElement.GetProperty("reason").GetString());
+    }
+
+    [Fact]
+    public async Task Locked_staff_sessions_are_rejected_immediately_and_audit_does_not_contain_passwords()
+    {
+        var account = await Staff();
+        using var staff = fixture.Client(account.Token);
+        using var admin = fixture.Client(fixture.AdminToken);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/staff/{account.Id}/access", new { isActive = false, expectedActive = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await staff.GetAsync("/api/management/dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await staff.GetAsync("/api/me")).StatusCode);
+        var audit = await admin.GetStringAsync("/api/management/audit");
+        Assert.DoesNotContain("Staff-integration-password-123!", audit);
+        Assert.DoesNotContain("PasswordHash", audit);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/staff/{account.Id}/access", new { isActive = true, expectedActive = false })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync("/api/management/dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PutAsJsonAsync($"/api/management/staff/{account.Id}/access", new { isActive = false, expectedActive = false })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Management_pricing_uses_version_checks_and_preserves_existing_booking_quotes()
+    {
+        using var admin = fixture.Client(fixture.AdminToken);
+        using var customer = fixture.Client((await Register()).Token);
+        var original = (await admin.GetFromJsonAsync<JsonElement[]>("/api/management/services"))!.Single(s => s.GetProperty("key").GetString() == "cooking");
+        var before = await customer.PostAsJsonAsync("/api/bookings", Booking(serviceKey: "cooking"));
+        var id = (await before.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        var version = original.GetProperty("version").GetInt32();
+        try
+        {
+            var change = new { name = "Nấu ăn cập nhật", hourlyRate = 98000, minHours = 2, maxHours = 4, isActive = true, version };
+            Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/management/services/cooking", change)).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await admin.PutAsJsonAsync("/api/management/services/cooking", change)).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", Booking(serviceKey: "cooking", durationHours: 1))).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", Booking(serviceKey: "cooking", durationHours: 5))).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await customer.PostAsJsonAsync("/api/bookings", new { serviceKey = "cooking", startTime = DateTimeOffset.UtcNow.AddDays(2), durationHours = 2, address = "Test", paymentMethod = "cash", expectedPrice = 180000 })).StatusCode);
+            var after = await customer.PostAsJsonAsync("/api/bookings", Booking(serviceKey: "cooking"));
+            Assert.Equal(196000, (await after.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("price").GetDecimal());
+            Assert.Equal(180000, (await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!.Single(b => b.GetProperty("id").GetInt32() == id).GetProperty("price").GetDecimal());
+            var disabled = new { name = "Nấu ăn cập nhật", hourlyRate = 98000, minHours = 2, maxHours = 4, isActive = false, version = version + 1 };
+            Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/management/services/cooking", disabled)).StatusCode);
+            Assert.DoesNotContain((await customer.GetFromJsonAsync<JsonElement[]>("/api/services"))!, s => s.GetProperty("key").GetString() == "cooking");
+            Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", Booking(serviceKey: "cooking"))).StatusCode);
+        }
+        finally
+        {
+            var current = (await admin.GetFromJsonAsync<JsonElement[]>("/api/management/services"))!.Single(s => s.GetProperty("key").GetString() == "cooking");
+            Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/management/services/cooking", new {
+                name = original.GetProperty("name").GetString(), hourlyRate = original.GetProperty("hourlyRate").GetDecimal(),
+                minHours = original.GetProperty("minHours").GetInt32(), maxHours = original.GetProperty("maxHours").GetInt32(),
+                isActive = original.GetProperty("isActive").GetBoolean(), version = current.GetProperty("version").GetInt32()
+            })).StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Staff_can_find_real_orders_and_dashboard_reports_service_value_not_platform_revenue()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var staff = fixture.Client((await Staff()).Token);
+        var id = await Create(customer);
+        var result = await staff.GetFromJsonAsync<JsonElement>($"/api/management/orders?search=CM{id}");
+        var row = Assert.Single(result.GetProperty("items").EnumerateArray());
+        Assert.Equal(id, row.GetProperty("id").GetInt32());
+        var dashboard = await staff.GetFromJsonAsync<JsonElement>("/api/management/dashboard");
+        Assert.True(dashboard.GetProperty("totalOrders").GetInt32() > 0);
+        Assert.True(dashboard.TryGetProperty("completedServiceValue", out _));
+        Assert.False(dashboard.TryGetProperty("revenue", out _));
+        Assert.Equal(HttpStatusCode.BadRequest, (await staff.GetAsync("/api/management/orders?page=0")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Bootstrap_refuses_to_promote_a_public_account_and_does_not_reset_existing_admins()
+    {
+        var customer = await Register();
+        using var scope = fixture.Api.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CleanMate.Api.Services.AdminBootstrap.CreateAsync(db, customer.Email, "Bootstrap-password-123!", "Administrator"));
+        await CleanMate.Api.Services.AdminBootstrap.CreateAsync(db, "admin@integration.test", "Another-password-123!", "Administrator");
+        using var admin = fixture.Client(fixture.AdminToken);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/management/dashboard")).StatusCode);
+        Assert.Equal(1, await db.Users.CountAsync(u => u.Email == "admin@integration.test"));
+    }
+
+    [Fact]
+    public async Task Management_migration_preserves_operating_legacy_cleaners_without_auto_approving_new_applications()
+    {
+        using var scope = fixture.Api.Services.CreateScope();
+        var source = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var connection = new SqlConnectionStringBuilder(source.Database.GetConnectionString()) { InitialCatalog = "CleanMateTestsLegacy_" + Guid.NewGuid().ToString("N") };
+        await using var db = new AppDbContextSqlServer(new DbContextOptionsBuilder<AppDbContextSqlServer>().UseSqlServer(connection.ConnectionString).Options);
+        try
+        {
+            await db.GetService<IMigrator>().MigrateAsync("20261016030621_AddNotifications");
+            await db.Database.ExecuteSqlRawAsync("INSERT INTO [Users] ([FullName],[Email],[PasswordHash],[Role]) VALUES ('Legacy Cleaner','legacy@example.test','test-only-unusable-hash',1); DECLARE @id int = SCOPE_IDENTITY(); INSERT INTO [CleanerProfiles] ([UserId],[Bio],[HourlyRate],[AvgRating],[Latitude],[Longitude],[City],[AddressText]) VALUES (@id,'Legacy',120000,0,0,0,'Ha Noi','Test address');");
+            await db.Database.MigrateAsync();
+            Assert.Equal("Approved", (await db.CleanerProfiles.SingleAsync()).ReviewStatus);
+            Assert.True((await db.Users.SingleAsync()).IsActive);
+            var user = new CleanMate.Api.Domain.Entities.User { FullName = "New Applicant", Email = "new@applicant.test" };
+            db.Users.Add(user); await db.SaveChangesAsync();
+            db.CleanerProfiles.Add(new CleanMate.Api.Domain.Entities.CleanerProfile { UserId = user.Id, SubmittedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+            Assert.Equal("Pending", (await db.CleanerProfiles.AsNoTracking().SingleAsync(c => c.UserId == user.Id)).ReviewStatus);
+        }
+        finally
+        {
+            Assert.StartsWith("CleanMateTestsLegacy_", new SqlConnectionStringBuilder(db.Database.GetConnectionString()).InitialCatalog);
+            await db.Database.EnsureDeletedAsync();
+        }
     }
 
     [Fact]
@@ -168,8 +358,8 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         });
         var cleanerInbox = await cleaner.GetFromJsonAsync<JsonElement>("/api/notifications");
         var cleanerItems = cleanerInbox.GetProperty("items").EnumerateArray().ToArray();
-        Assert.Equal(2, cleanerItems.Length);
-        Assert.All(cleanerItems, n => Assert.Equal("CleanerJobs", n.GetProperty("target").GetString()));
+        Assert.Equal(3, cleanerItems.Length);
+        Assert.Equal(2, cleanerItems.Count(n => n.GetProperty("target").GetString() == "CleanerJobs"));
         Assert.Contains(cleanerItems, n => n.GetProperty("title").GetString() == "Khách đã đánh giá ca làm");
         Assert.Equal(5, (await customer.GetFromJsonAsync<JsonElement>("/api/notifications/unread-count")).GetProperty("unreadCount").GetInt32());
     }
@@ -273,7 +463,8 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         {
             Assert.Equal(HttpStatusCode.InternalServerError, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
             Assert.Equal("Pending", Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!).GetProperty("status").GetString());
-            Assert.Empty((await cleaner.GetFromJsonAsync<JsonElement>("/api/notifications")).GetProperty("items").EnumerateArray());
+            Assert.DoesNotContain((await cleaner.GetFromJsonAsync<JsonElement>("/api/notifications")).GetProperty("items").EnumerateArray(),
+                n => n.GetProperty("bookingId").ValueKind != JsonValueKind.Null && n.GetProperty("bookingId").GetInt32() == id);
         }
         finally { await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Notifications] DROP CONSTRAINT [CK_Test_NotificationFailure]"); }
     }
@@ -1103,7 +1294,7 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
-    public async Task Customer_cannot_claim_and_can_register_as_cleaner_using_existing_token()
+    public async Task Customer_application_requires_approval_before_existing_token_can_claim()
     {
         var account = await Register();
         using var client = fixture.Client(account.Token);
@@ -1111,8 +1302,12 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var registration = await client.PostAsJsonAsync("/api/profile/register-cleaner", new { bio = "", city = "Ha Noi", addressText = "", hourlyRate = 120000 });
         Assert.Equal(HttpStatusCode.OK, registration.StatusCode);
         var user = await registration.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Cleaner", user.GetProperty("role").GetString());
-        Assert.True(user.GetProperty("isCleaner").GetBoolean());
+        Assert.Equal("Customer", user.GetProperty("role").GetString());
+        Assert.False(user.GetProperty("isCleaner").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/cleaner/jobs/available")).StatusCode);
+        using var admin = fixture.Client(fixture.AdminToken);
+        var profileId = user.GetProperty("cleanerProfile").GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/applications/{profileId}/review", new { status = "Approved" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/cleaner/jobs/available")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/profile/register-cleaner", new { bio = "", city = "", addressText = "", hourlyRate = 0 })).StatusCode);
     }
@@ -1173,10 +1368,14 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         }
         var register = await Form("/Auth/Register", new() { ["FullName"] = "Portal Cleaner", ["Email"] = email, ["Password"] = Password, ["ConfirmPassword"] = Password });
         Assert.Equal(HttpStatusCode.Redirect, register.StatusCode);
-        Assert.Contains("Portal Cleaner", await portal.GetStringAsync("/Dashboard/Index"));
+        var applications = await fixture.Client(fixture.AdminToken).GetFromJsonAsync<JsonElement>($"/api/management/applications?search={email}");
+        var profileId = applications.GetProperty("items")[0].GetProperty("id").GetInt32();
+        using (var admin = fixture.Client(fixture.AdminToken))
+            Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/applications/{profileId}/review", new { status = "Approved" })).StatusCode);
         await portal.GetAsync("/Auth/Logout");
         var login = await Form("/Auth/Login", new() { ["Email"] = email, ["Password"] = Password });
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        Assert.Contains("Portal Cleaner", await portal.GetStringAsync("/Dashboard/Index"));
         using var customer = fixture.Client((await Register()).Token);
         var id = await Create(customer);
         var list = await portal.GetStringAsync("/Booking/List");

@@ -60,7 +60,12 @@ frontend.MapPost("/__system-tests/shutdown", (HttpContext context) =>
 try
 {
     using (var scope = api.Services.CreateScope())
-        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+        // Credentials exist only in this executable's generated throwaway database.
+        await CleanMate.Api.Services.AdminBootstrap.CreateAsync(db, "admin@system.test", "CleanMate-admin-test-123!", "System Test Admin");
+    }
     await api.StartAsync();
     await portal.StartAsync();
     await frontend.StartAsync();

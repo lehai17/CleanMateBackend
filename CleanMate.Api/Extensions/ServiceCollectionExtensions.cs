@@ -89,6 +89,17 @@ public static class ServiceCollectionExtensions
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        var users = context.HttpContext.RequestServices.GetRequiredService<CurrentUserService>();
+                        var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                        var id = users.GetCurrentUserId(context.Principal!);
+                        if (id is null || !await db.Users.AnyAsync(u => u.Id == id && u.IsActive))
+                            context.Fail("Account is unavailable.");
+                    }
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

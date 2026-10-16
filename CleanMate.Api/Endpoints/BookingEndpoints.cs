@@ -23,6 +23,8 @@ public static class BookingEndpoints
                 JsonSerializer.SerializeToUtf8Bytes(new { dto.ServiceKey, start = dto.StartTime.UtcTicks,
                     dto.DurationHours, address = dto.Address?.Trim(), notes = dto.Notes?.Trim() ?? "",
                     dto.PaymentMethod, contactName = dto.ContactName?.Trim(), contactPhone = dto.ContactPhone?.Trim() })));
+            if (requestHash is not null && dto.ExpectedPrice is not null)
+                requestHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(requestHash + ":price:" + dto.ExpectedPrice.Value.ToString("G29", System.Globalization.CultureInfo.InvariantCulture))));
             if (dto.RequestId is not null)
             {
                 var existing = await db.Bookings.AsNoTracking().SingleOrDefaultAsync(b =>
@@ -35,11 +37,18 @@ public static class BookingEndpoints
                 ContactPhone = dto.ContactPhone ?? user.PhoneNumber };
             var error = BookingRules.Validate(dto, DateTimeOffset.UtcNow);
             if (error is not null) return Results.BadRequest(new { message = error });
+            var service = await db.ServiceOfferings.AsNoTracking().SingleOrDefaultAsync(s => s.Key == dto.ServiceKey && s.IsActive);
+            if (service is null) return Results.BadRequest(new { message = "Dịch vụ không khả dụng." });
+            if (dto.DurationHours < service.MinHours || dto.DurationHours > service.MaxHours)
+                return Results.BadRequest(new { message = $"Thời lượng dịch vụ phải từ {service.MinHours} đến {service.MaxHours} giờ." });
+            var price = service.HourlyRate * dto.DurationHours;
+            if (dto.ExpectedPrice is not null && dto.ExpectedPrice != price)
+                return Results.Conflict(new { message = "Giá dịch vụ đã thay đổi. Vui lòng tải lại trang đặt lịch để xem giá mới." });
             var booking = new Booking
             {
                 UserId = user.Id, RequestId = dto.RequestId, RequestHash = requestHash,
                 StartTime = dto.StartTime.UtcDateTime, DurationHours = dto.DurationHours,
-                Price = BookingRules.HourlyRates[dto.ServiceKey] * dto.DurationHours,
+                Price = price,
                 Address = dto.Address!.Trim(), Notes = $"[{dto.ServiceKey}] {dto.Notes?.Trim()}".Trim(),
                 ContactName = dto.ContactName?.Trim(), ContactPhone = dto.ContactPhone?.Trim(),
                 PaymentMethod = "cash", CreatedAt = DateTime.UtcNow, Status = BookingStatuses.Pending
