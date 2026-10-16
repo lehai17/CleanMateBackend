@@ -18,6 +18,12 @@ contain resource codes and generic descriptions, not application/contact details
 or message/report bodies. New staff accounts do not receive historical backfill.
 
 The business change and all its notification rows commit in one transaction.
+Cleaner signup saves manager notifications individually in recipient ID order to
+avoid bulk-insert FK validation contending with other newly inserted users.
+Registration now retries a SQL Server deadlock victim at most twice, rebuilding
+the entire user/profile/notification unit after rollback. Other write failures
+still fail atomically. This regression was found while testing rebooking; see
+[REBOOKING.md](REBOOKING.md).
 Support request/message retries preserve the existing event, and competing
 application resubmissions have one winner. A later resubmission cycle creates a
 fresh event. A failed notification insert rolls back the originating signup,

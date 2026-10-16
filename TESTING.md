@@ -7,10 +7,14 @@ Authentication throttling and proxy/password-bound checks are documented in
 [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
 an isolated SQL database and low limits; functional suites use higher limits.
 
-Verified on 16 October 2026: 135 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 31 frontend tests, 40 customer-web
+Verified on 16 October 2026: 146 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 36 frontend tests, 44 customer-web
 Playwright cases, 26 admin Playwright cases, 24 cleaner-web Playwright cases,
 9 cleaner-web Node tests, 7 cleaner-mobile tests and 5 admin Node tests.
+
+Customer mobile additionally passes 4 rebooking draft/privacy/limit tests (`npm test`)
+and exports its Android bundle (1367 modules). Rebooking API/browser checks and the
+concurrent-registration regression are documented in [REBOOKING.md](REBOOKING.md).
 
 Support assignment checks cover staff claim/release permissions, personal and
 unassigned queues, concurrent claims, stale message/assignment versions, Admin

@@ -75,6 +75,7 @@ public static class BookingEndpoints
             return BookingReceipt(booking);
         });
         var orders = app.MapGroup("/api/orders").WithTags("Orders").RequireAuthorization();
+        RebookingEndpoints.Map(orders);
         orders.MapGet("/", async (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal) =>
         {
             var userId = users.GetCurrentUserId(principal);

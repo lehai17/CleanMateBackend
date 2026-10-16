@@ -3,6 +3,7 @@ using CleanMate.Api.Domain.Entities;
 using CleanMate.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Google.Apis.Auth;
+using Microsoft.Data.SqlClient;
 using BCryptNet = BCrypt.Net.BCrypt;
 
 namespace CleanMate.Api.Services;
@@ -23,14 +24,29 @@ public class AuthService
     public async Task<AuthResponseDto> RegisterAsync(AppDbContext db, RegisterDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
+        var passwordHash = BCryptNet.HashPassword(dto.Password);
+        for (var attempt = 0; ; attempt++)
+        {
+            try { return await RegisterOnceAsync(db, dto, email, passwordHash); }
+            catch (Exception exception) when (attempt < 2 && db.Database.IsSqlServer() && IsDeadlock(exception))
+            {
+                // SQL Server rolls back deadlock victims. Retry the whole unit with fresh
+                // entities/IDs; arbitrary SQL failures and ambiguous commits are not retried.
+                db.ChangeTracker.Clear();
+                await Task.Delay(Random.Shared.Next(25, 101) * (attempt + 1));
+            }
+        }
+    }
+
+    private async Task<AuthResponseDto> RegisterOnceAsync(AppDbContext db, RegisterDto dto, string email, string passwordHash)
+    {
         // Public registration never grants a staff role or immediate cleaner access.
         var requestedRole = UserRole.Customer;
-
         var user = new User
         {
             FullName = dto.FullName.Trim(),
             Email = email,
-            PasswordHash = BCryptNet.HashPassword(dto.Password),
+            PasswordHash = passwordHash,
             PhoneNumber = _currentUserService.NormalizeOptional(dto.PhoneNumber),
             Address = _currentUserService.NormalizeOptional(dto.Address),
             Role = requestedRole
@@ -56,11 +72,24 @@ public class AuthService
             var recipients = await ManagementNotifications.RecipientsAsync(db,0);
             await using var transaction = await db.Database.BeginTransactionAsync();
             await db.SaveChangesAsync();
-            ManagementNotifications.Add(db,recipients,$"ApplicationSubmitted:{user.CleanerProfile.Id}:initial","Applications",user.CleanerProfile.Id,
-                "Có hồ sơ cleaner mới",$"Hồ sơ HS{user.CleanerProfile.Id} đang chờ xét duyệt. Mở Hồ sơ cleaner để kiểm tra.");
-            await db.SaveChangesAsync();await transaction.CommitAsync();
+            // A large SQL Server MERGE can scan Users for FK validation while other
+            // signups hold new-user locks. Single-recipient inserts avoid that lock cycle.
+            foreach (var recipient in recipients.Order())
+            {
+                ManagementNotifications.Add(db,[recipient],$"ApplicationSubmitted:{user.CleanerProfile.Id}:initial","Applications",user.CleanerProfile.Id,
+                    "Có hồ sơ cleaner mới",$"Hồ sơ HS{user.CleanerProfile.Id} đang chờ xét duyệt. Mở Hồ sơ cleaner để kiểm tra.");
+                await db.SaveChangesAsync();
+            }
+            await transaction.CommitAsync();
         }
         return _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
+    }
+
+    private static bool IsDeadlock(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+            if (current is SqlException { Number: 1205 }) return true;
+        return false;
     }
 
     public async Task<AuthResponseDto?> LoginAsync(AppDbContext db, LoginDto dto)
