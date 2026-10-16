@@ -20,7 +20,7 @@ public static class NotificationEndpoints
             var rows = await db.Notifications.AsNoTracking().Where(n => n.UserId == userId &&
                     (beforeId == null || n.Id < beforeId))
                 .OrderByDescending(n => n.Id).Take(21)
-                .Select(n => new { n.Id, n.BookingId, n.Title, n.Message, n.CreatedAt, n.ReadAt,
+                .Select(n => new { n.Id, n.BookingId, n.TargetId, n.Title, n.Message, n.CreatedAt, n.ReadAt,
                     target = n.Target ?? (n.ForCleaner ? "CleanerJobs" : "Orders") }).ToListAsync();
             var items = rows.Take(20).ToList();
             return Results.Ok(new { items,

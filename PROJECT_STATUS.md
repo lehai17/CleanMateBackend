@@ -15,6 +15,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 - Web Admin/Staff riêng: dashboard, duyệt cleaner, cấu hình giá, tra cứu đơn,
   quản lý Staff và nhật ký thao tác.
 - Thông báo trong ứng dụng, trạng thái đã đọc, phân trang và mở đúng khu vực.
+- Admin/Staff có hộp thông báo, số chưa đọc và mở đúng hồ sơ/yêu cầu; nhận báo
+  khi cleaner gửi/gửi lại hồ sơ, có yêu cầu hỗ trợ hoặc người báo gửi thêm tin.
+  Xem [STAFF_NOTIFICATIONS.md](STAFF_NOTIFICATIONS.md).
 - Đổi mật khẩu cho khách, cleaner, Admin/Staff, có giới hạn thử; đổi thành công
   vô hiệu hóa các JWT cũ và yêu cầu đăng nhập lại. Có audit và thông báo cá nhân.
 - Đăng xuất tất cả thiết bị mà không đổi mật khẩu, có xác nhận trên giao diện;

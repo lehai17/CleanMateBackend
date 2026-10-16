@@ -44,7 +44,8 @@ Message insertion, version/status update, audit and staff-reply notification are
 one transaction. Audit stores message ID, length, origin and reopen flag, not the
 message body. A staff reply creates one generic notification for the reporter;
 retry does not duplicate it. New reporter messages move the ticket to the top of
-the management list on refresh. There is no new staff notification inbox.
+the management list on refresh. The later staff-notifications feature adds alerts
+and a management inbox for incoming reports/messages; see STAFF_NOTIFICATIONS.md.
 
 Messages do not alter booking status, prices, cash declarations or payment records.
 Threads refresh explicitly with **Tải lại trao đổi**; inbox notifications use the

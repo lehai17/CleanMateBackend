@@ -45,12 +45,15 @@ public static class SupportEndpoints
                 return Results.NotFound(new { message = "Không tìm thấy đơn thuộc tài khoản của bạn." });
             var existing = await db.SupportTickets.AsNoTracking().SingleOrDefaultAsync(t => t.ReporterId == id && t.RequestId == dto.RequestId);
             if (existing is not null) return Same(existing,dto) ? Results.Ok(new { existing.Id }) : Results.Conflict(new { message = "Mã gửi lại đã được dùng với nội dung khác." });
+            var recipients = await ManagementNotifications.RecipientsAsync(db,id);
             await using var transaction = await db.Database.BeginTransactionAsync();
             var ticket = new SupportTicket { BookingId = dto.BookingId, ReporterId = id, RequestId = dto.RequestId, Category = dto.Category, Description = dto.Description.Trim() };
             db.SupportTickets.Add(ticket);
             try
             {
                 await db.SaveChangesAsync();
+                ManagementNotifications.Add(db,recipients,$"ManagerSupportCreated:{ticket.Id}","Support",ticket.Id,
+                    "Có yêu cầu hỗ trợ mới",$"Yêu cầu HT{ticket.Id} cho CM{dto.BookingId} cần được kiểm tra.",dto.BookingId);
                 db.Notifications.Add(new Notification { UserId = id, BookingId = dto.BookingId, Target = "Support", EventKey = $"SupportCreated:{ticket.Id}",
                     Title = "Đã tiếp nhận yêu cầu hỗ trợ", Message = $"Yêu cầu HT{ticket.Id} cho đơn CM{dto.BookingId} đã được gửi tới nhân viên.", CreatedAt = DateTime.UtcNow });
                 await db.SaveChangesAsync(); await transaction.CommitAsync();

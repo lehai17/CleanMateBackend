@@ -243,6 +243,9 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<int?>("TargetId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)

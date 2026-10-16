@@ -57,7 +57,13 @@ public static class ManagementEndpoints
             if (status is not (null or "All" or "Pending" or "Approved" or "Rejected" or "NeedsInfo")) return Results.BadRequest();
             var query = db.CleanerProfiles.AsNoTracking().AsQueryable();
             if (status != "All") query = query.Where(c => c.ReviewStatus == (status ?? "Pending"));
-            if (!string.IsNullOrWhiteSpace(search)) query = query.Where(c => c.User!.FullName.Contains(search.Trim()) || c.User.Email.Contains(search.Trim()) || c.City.Contains(search.Trim()));
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var text=search.Trim();
+                if (text.StartsWith("HS",StringComparison.OrdinalIgnoreCase) && int.TryParse(text[2..],out var profileId) && profileId > 0)
+                    query=query.Where(c=>c.Id==profileId);
+                else query=query.Where(c=>c.User!.FullName.Contains(text)||c.User.Email.Contains(text)||c.City.Contains(text));
+            }
             var total = await query.CountAsync();
             var items = await query.OrderByDescending(c => c.SubmittedAt).ThenByDescending(c => c.Id).Skip((number - 1) * 20).Take(20)
                 .Select(c => new { c.Id, c.UserId, name = c.User!.FullName, email = c.User.Email, phone = c.User.PhoneNumber,
