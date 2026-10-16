@@ -18,6 +18,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 - Admin/Staff có hộp thông báo, số chưa đọc và mở đúng hồ sơ/yêu cầu; nhận báo
   khi cleaner gửi/gửi lại hồ sơ, có yêu cầu hỗ trợ hoặc người báo gửi thêm tin.
   Xem [STAFF_NOTIFICATIONS.md](STAFF_NOTIFICATIONS.md).
+- Phân công hỗ trợ: staff nhận/bỏ nhận yêu cầu, Admin giao/đổi người phụ trách;
+  lọc việc của mình/chưa phân công, thông báo giao việc và chống ghi đè phiên bản.
+  Xem [SUPPORT_ASSIGNMENT.md](SUPPORT_ASSIGNMENT.md).
 - Đổi mật khẩu cho khách, cleaner, Admin/Staff, có giới hạn thử; đổi thành công
   vô hiệu hóa các JWT cũ và yêu cầu đăng nhập lại. Có audit và thông báo cá nhân.
 - Đăng xuất tất cả thiết bị mà không đổi mật khẩu, có xác nhận trên giao diện;
@@ -42,7 +45,7 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
    staff kiểm tra hồ sơ. Hiện duyệt dựa trên thông tin văn bản.
 3. **Thông báo đẩy:** thông báo khi app không mở. Hiện inbox/polling hoạt động
    trong ứng dụng; chưa có tích hợp push và quản lý token thiết bị.
-4. **Vận hành sự cố:** bổ sung bằng chứng/ảnh, phân công staff và SLA;
+4. **Vận hành sự cố:** bổ sung bằng chứng/ảnh và SLA;
    quy trình ca trễ, không đến và điều phối lại do staff thực hiện. Đã có hội thoại
    và lịch sử phản hồi; trao đổi không tự sửa đơn hoặc giao dịch tiền mặt.
 5. **Dọn luồng cũ:** thống nhất khách sử dụng app/web khách và cleaner sử dụng
@@ -68,7 +71,8 @@ Admin/Staff có thể mở lại bằng thao tác xử lý hiện tại.
 
 Đã có hội thoại nhiều tin nhắn, chống gửi trùng và tải lịch sử theo từng yêu cầu.
 Xem [SUPPORT_CONVERSATIONS.md](SUPPORT_CONVERSATIONS.md). Chưa có tệp đính kèm,
-phân công nhân viên, SLA hoặc cập nhật hội thoại qua WebSocket/push.
+SLA hoặc cập nhật hội thoại qua WebSocket/push. Phân công nhân viên đã có;
+xem [SUPPORT_ASSIGNMENT.md](SUPPORT_ASSIGNMENT.md).
 Không có cơ chế tự thu/hoàn tiền hay sửa trạng thái đơn qua xử lý hỗ trợ.
 
 ## Đổi mật khẩu: phạm vi bản hiện tại

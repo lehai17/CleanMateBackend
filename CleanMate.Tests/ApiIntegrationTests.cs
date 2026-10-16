@@ -96,7 +96,7 @@ public sealed class ApiFixture : IAsyncLifetime
     }
 }
 
-public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
+public partial class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private const string Password = "CleanMate-test-123!";
 

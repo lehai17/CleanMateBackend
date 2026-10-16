@@ -74,6 +74,9 @@ public class AppDbContext : DbContext
         b.Entity<SupportTicket>().HasOne<Booking>().WithMany().HasForeignKey(t => t.BookingId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SupportTicket>().HasOne(t => t.Reporter).WithMany().HasForeignKey(t => t.ReporterId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<SupportTicket>().HasOne<User>().WithMany().HasForeignKey(t => t.RespondedById).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasOne(t => t.AssignedTo).WithMany().HasForeignKey(t => t.AssignedToId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasIndex(t => new { t.AssignedToId, t.Status, t.Id });
+        b.Entity<SupportTicket>().Property(t => t.AssignedAt).HasConversion(utc);
         b.Entity<SupportTicket>().HasIndex(t => new { t.ReporterId, t.RequestId }).IsUnique();
         b.Entity<SupportTicket>().HasIndex(t => new { t.Status, t.Id });
         b.Entity<SupportTicket>().Property(t => t.Category).HasMaxLength(32);

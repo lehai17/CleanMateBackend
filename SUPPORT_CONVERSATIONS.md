@@ -50,7 +50,9 @@ and a management inbox for incoming reports/messages; see STAFF_NOTIFICATIONS.md
 Messages do not alter booking status, prices, cash declarations or payment records.
 Threads refresh explicitly with **Tải lại trao đổi**; inbox notifications use the
 existing foreground polling. This is not background push or a live WebSocket chat.
-There are no attachments, message editing/deletion, read receipts or staff assignment.
+There are no attachments, message editing/deletion or read receipts.
+Staff assignment and personal/unassigned queues were added separately; see
+[SUPPORT_ASSIGNMENT.md](SUPPORT_ASSIGNMENT.md). Colleagues retain permission to help reply.
 
 ## Schema and validation
 
