@@ -98,7 +98,8 @@ public static class CleanerJobEndpoints
         // The profile row lock serializes all assignments and starts for this cleaner.
         // The conditional booking update still arbitrates other cleaners and cancellation.
         var count = await db.Bookings.Where(b => b.Id == id && b.Status == BookingStatuses.Pending &&
-                b.CleanerId == null && b.UserId != cleaner.UserId && b.StartTime > DateTime.UtcNow)
+                b.CleanerId == null && b.UserId != cleaner.UserId && b.StartTime > DateTime.UtcNow &&
+                b.StartTime == booking.StartTime)
             .ExecuteUpdateAsync(setters => setters.SetProperty(b => b.CleanerId, (int?)cleaner.Id)
                 .SetProperty(b => b.Status, BookingStatuses.Accepted));
         if (count != 1) return Results.Conflict(new { message = "Đơn không còn khả dụng để nhận." });

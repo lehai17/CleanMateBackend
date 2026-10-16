@@ -74,6 +74,13 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("RequestHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
@@ -92,6 +99,10 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.HasIndex("CleanerId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "RequestId")
+                        .IsUnique()
+                        .HasFilter("[RequestId] IS NOT NULL");
 
                     b.ToTable("Bookings");
                 });

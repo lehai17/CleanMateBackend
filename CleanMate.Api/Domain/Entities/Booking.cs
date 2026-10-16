@@ -5,6 +5,8 @@ public class Booking
     public int Id { get; set; }
     public int UserId { get; set; } // người đặt (customer)
     public int? CleanerId { get; set; } // người nhận việc (cleaner) <-- thêm
+    public Guid? RequestId { get; set; }
+    public string? RequestHash { get; set; }
 
     public DateTime StartTime { get; set; }
     public decimal Price { get; set; }

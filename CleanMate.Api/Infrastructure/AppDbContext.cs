@@ -30,6 +30,9 @@ public class AppDbContext : DbContext
         b.Entity<Booking>().Property(p => p.CustomerReview).HasMaxLength(1000);
         b.Entity<Booking>().Property(p => p.ContactName).HasMaxLength(200);
         b.Entity<Booking>().Property(p => p.ContactPhone).HasMaxLength(40);
+        b.Entity<Booking>().Property(p => p.RequestHash).HasMaxLength(64);
+        b.Entity<Booking>().HasIndex(p => new { p.UserId, p.RequestId }).IsUnique();
+        b.Entity<Booking>().HasIndex(p => p.UserId);
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)
