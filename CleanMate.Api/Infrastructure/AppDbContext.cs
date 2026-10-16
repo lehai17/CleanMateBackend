@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ServiceOffering> ServiceOfferings => Set<ServiceOffering>();
     public DbSet<AdminAudit> AdminAudits => Set<AdminAudit>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -68,6 +69,17 @@ public class AppDbContext : DbContext
         b.Entity<AdminAudit>().Property(a => a.Target).HasMaxLength(128);
         b.Entity<AdminAudit>().Property(a => a.Details).HasMaxLength(12000);
         b.Entity<AdminAudit>().Property(a => a.CreatedAt).HasConversion(utc);
+        b.Entity<SupportTicket>().HasOne<Booking>().WithMany().HasForeignKey(t => t.BookingId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasOne(t => t.Reporter).WithMany().HasForeignKey(t => t.ReporterId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasOne<User>().WithMany().HasForeignKey(t => t.RespondedById).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasIndex(t => new { t.ReporterId, t.RequestId }).IsUnique();
+        b.Entity<SupportTicket>().HasIndex(t => new { t.Status, t.Id });
+        b.Entity<SupportTicket>().Property(t => t.Category).HasMaxLength(32);
+        b.Entity<SupportTicket>().Property(t => t.Status).HasMaxLength(32);
+        b.Entity<SupportTicket>().Property(t => t.Description).HasMaxLength(2000);
+        b.Entity<SupportTicket>().Property(t => t.Response).HasMaxLength(2000);
+        b.Entity<SupportTicket>().Property(t => t.CreatedAt).HasConversion(utc);
+        b.Entity<SupportTicket>().Property(t => t.UpdatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)

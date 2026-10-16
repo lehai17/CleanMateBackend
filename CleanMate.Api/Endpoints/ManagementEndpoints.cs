@@ -33,6 +33,7 @@ public static class ManagementEndpoints
             context.HttpContext.Items["Manager"] = user;
             return await next(context);
         });
+        SupportEndpoints.MapManagementSupport(group);
         group.MapGet("/dashboard", async (AppDbContext db) =>
         {
             var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;

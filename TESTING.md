@@ -1,10 +1,17 @@
 # Backend and system tests
 
-Verified on 16 October 2026: 89 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 23 frontend tests, 30 customer-web
-Playwright cases, 8 admin Playwright cases and 1 admin server integration test.
+Verified on 16 October 2026: 93 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 25 frontend tests, 32 customer-web
+Playwright cases, 10 admin Playwright cases, 16 cleaner-web Playwright cases,
+8 cleaner-web Node tests, 7 cleaner-mobile tests and 1 admin server integration test.
 
 From backend/:
+
+See PROJECT_STATUS.md for feature scope, remaining work and the booking-support
+workflow. New SQL Server/PostgreSQL migrations add SupportTickets; no application
+database was migrated during testing. Support tests cover private ownership,
+concurrent retry deduplication, validation, staff version conflicts, atomic
+audit/notifications and unchanged booking/cash records after staff resolution.
 
 ```powershell
 dotnet restore CleanMate.sln

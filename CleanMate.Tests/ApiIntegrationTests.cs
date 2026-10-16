@@ -99,6 +99,78 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     private const string Password = "CleanMate-test-123!";
 
     [Fact]
+    public async Task Support_only_booking_parties_can_report_and_reports_are_private()
+    {
+        using var owner = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var outsider = fixture.Client((await Register()).Token);
+        using var guest = fixture.Client();
+        var id = await Create(owner);
+        object Report() => new { bookingId=id,category="Scheduling",description="Không thể liên hệ vào giờ đã hẹn.",requestId=Guid.NewGuid() };
+        Assert.Equal(HttpStatusCode.Unauthorized,(await guest.GetAsync("/api/support")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,(await outsider.PostAsJsonAsync("/api/support",Report())).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,(await cleaner.PostAsJsonAsync("/api/support",Report())).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept",null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await owner.PostAsJsonAsync("/api/support",Report())).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await cleaner.PostAsJsonAsync("/api/support",Report())).StatusCode);
+        foreach(var client in new[]{owner,cleaner})
+        {
+            var result=await client.GetFromJsonAsync<JsonElement>("/api/support");
+            Assert.Equal(1,result.GetProperty("total").GetInt32());
+            Assert.Equal(id,result.GetProperty("items")[0].GetProperty("bookingId").GetInt32());
+        }
+        Assert.Equal(0,(await outsider.GetFromJsonAsync<JsonElement>("/api/support")).GetProperty("total").GetInt32());
+        Assert.Equal(HttpStatusCode.Forbidden,(await owner.GetAsync("/api/management/support")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await owner.GetAsync("/api/support?page=0")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Support_concurrent_retries_create_one_ticket_and_one_notification()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);var id=await Create(client);var key=Guid.NewGuid();
+        var payload=new {bookingId=id,category="CashPayment",description="Cần kiểm tra khoản tiền mặt sau ca.",requestId=key};
+        var responses=await Task.WhenAll(client.PostAsJsonAsync("/api/support",payload),client.PostAsJsonAsync("/api/support",payload));
+        Assert.All(responses,r=>Assert.Equal(HttpStatusCode.OK,r.StatusCode));
+        var first=(await responses[0].Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        Assert.Equal(first,(await responses[1].Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict,(await client.PostAsJsonAsync("/api/support",new {bookingId=id,category="Other",description="Nội dung thay đổi của cùng một mã.",requestId=key})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,await db.SupportTickets.CountAsync(t=>t.ReporterId==account.Id));
+        Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==$"SupportCreated:{first}"));
+    }
+
+    [Fact]
+    public async Task Support_staff_resolution_is_versioned_audited_and_does_not_change_cash_or_booking()
+    {
+        var account=await Register();using var owner=fixture.Client(account.Token);using var staff=fixture.Client((await Staff()).Token);
+        var bookingId=await Create(owner);
+        var create=await owner.PostAsJsonAsync("/api/support",new {bookingId,category="CashPayment",description="Cần được giải thích về tiền mặt.",requestId=Guid.NewGuid()});
+        var id=(await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();var path=$"/api/management/support/{id}";
+        Assert.Equal(HttpStatusCode.Forbidden,(await owner.PutAsJsonAsync(path,new {status="Resolved",response="Fake resolution",version=1})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await staff.PutAsJsonAsync(path,new {status="Resolved",response="",version=1})).StatusCode);
+        var response=new string('ệ',2000);
+        var attempts=await Task.WhenAll(staff.PutAsJsonAsync(path,new {status="Resolved",response,version=1}),staff.PutAsJsonAsync(path,new {status="InProgress",response,version=1}));
+        Assert.Single(attempts,r=>r.StatusCode==HttpStatusCode.OK);Assert.Single(attempts,r=>r.StatusCode==HttpStatusCode.Conflict);
+        var result=(await owner.GetFromJsonAsync<JsonElement>("/api/support")).GetProperty("items")[0];Assert.Equal(response,result.GetProperty("response").GetString());
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,await db.AdminAudits.CountAsync(a=>a.Target==$"Support:{id}"));
+        Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==$"SupportUpdated:{id}:2"));
+        Assert.Equal("Pending",(await db.Bookings.FindAsync(bookingId))!.Status);Assert.False(await db.Payments.AnyAsync(p=>p.BookingId==bookingId));
+        Assert.Equal(HttpStatusCode.BadRequest,(await staff.GetAsync("/api/management/support?status=Unknown")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Support_rejects_invalid_payloads_before_creating_any_report()
+    {
+        using var client=fixture.Client((await Register()).Token);var bookingId=await Create(client);
+        foreach(var description in new[]{"short",new string('x',2001)})
+            Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/support",new {bookingId,category="Other",description,requestId=Guid.NewGuid()})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/support",new {bookingId,category="Other",description="A valid description",requestId=Guid.Empty})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/support",new {bookingId,category="Fake",description="A valid description",requestId=Guid.NewGuid()})).StatusCode);
+        Assert.Equal(0,(await client.GetFromJsonAsync<JsonElement>("/api/support")).GetProperty("total").GetInt32());
+    }
+
+    [Fact]
     public void Sql_model_matches_existing_migrations()
     {
         using var scope = fixture.Api.Services.CreateScope();

@@ -20,6 +20,7 @@ public static class ApiApplication
         app.MapPaymentEndpoints();
         app.MapNotificationEndpoints();
         app.MapManagementEndpoints();
+        app.MapSupportEndpoints();
         return app;
     }
 }
