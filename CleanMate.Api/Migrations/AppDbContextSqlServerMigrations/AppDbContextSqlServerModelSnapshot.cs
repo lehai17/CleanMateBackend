@@ -432,6 +432,44 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         });
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("FromStaff")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId", "RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("TicketId", "Id");
+
+                    b.ToTable("SupportMessages");
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportTicket", b =>
                 {
                     b.Property<int>("Id")
@@ -607,6 +645,21 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportMessage", b =>
+                {
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CleanMate.Api.Domain.Entities.SupportTicket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportTicket", b =>

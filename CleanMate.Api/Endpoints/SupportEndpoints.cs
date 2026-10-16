@@ -18,6 +18,7 @@ public static class SupportEndpoints
     public static IEndpointRouteBuilder MapSupportEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/support").RequireAuthorization().WithTags("Support");
+        group.MapConversation(management:false);
         group.MapGet("/bookings", async (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal) =>
         {
             var id = users.GetCurrentUserId(principal);
@@ -68,6 +69,7 @@ public static class SupportEndpoints
 
     public static void MapManagementSupport(RouteGroupBuilder group)
     {
+        group.MapConversation(management:true);
         group.MapGet("/support", async (AppDbContext db, string? status, string? search, int? page) =>
         {
             var number = page ?? 1;
@@ -101,6 +103,9 @@ public static class SupportEndpoints
                 s.SetProperty(t => t.Status,dto.Status).SetProperty(t => t.Response,dto.Response == null ? "" : dto.Response.Trim())
                     .SetProperty(t => t.Version,t => t.Version+1).SetProperty(t => t.UpdatedAt,now).SetProperty(t => t.RespondedById,(int?)actor.Id));
             if (count != 1) return Results.Conflict(new { message = "Yêu cầu vừa được nhân viên khác cập nhật. Vui lòng tải lại." });
+            var response = dto.Response?.Trim() ?? "";
+            if (response.Length > 0 && response != ticket.Response)
+                db.SupportMessages.Add(new SupportMessage { TicketId=id,AuthorId=actor.Id,RequestId=Guid.NewGuid(),FromStaff=true,Body=response,CreatedAt=now });
             db.AdminAudits.Add(new AdminAudit { ActorId = actor.Id, Action = "UpdateSupport", Target = $"Support:{id}", CreatedAt = now,
                 Details = JsonSerializer.Serialize(new { before = ticket.Status, after = dto.Status, responseLength = dto.Response?.Trim().Length ?? 0 }) });
             db.Notifications.Add(new Notification { UserId = ticket.ReporterId, BookingId = ticket.BookingId, Target = "Support", EventKey = $"SupportUpdated:{id}:{dto.Version+1}",

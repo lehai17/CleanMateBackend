@@ -22,6 +22,8 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 - Hỗ trợ theo đơn: khách và cleaner được giao ca gửi báo cáo; staff phản hồi,
   cập nhật trạng thái và gửi thông báo cho người báo. Có chống gửi trùng khi
   thử lại, kiểm tra quyền và chống ghi đè cập nhật giữa nhiều staff.
+- Hội thoại hỗ trợ riêng tư: người báo và Admin/Staff trao đổi nhiều tin nhắn,
+  xem lịch sử và tải tin cũ. Tin bổ sung từ người báo mở lại yêu cầu đã giải quyết.
 - Backend có migration SQL Server/PostgreSQL và các bộ kiểm thử tự động trên
   SQL tạm. Web được test desktop/mobile browser; app được export Android.
 
@@ -37,9 +39,9 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
    staff kiểm tra hồ sơ. Hiện duyệt dựa trên thông tin văn bản.
 3. **Thông báo đẩy:** thông báo khi app không mở. Hiện inbox/polling hoạt động
    trong ứng dụng; chưa có tích hợp push và quản lý token thiết bị.
-4. **Vận hành sự cố:** bổ sung bằng chứng/ảnh và hội thoại cho yêu cầu hỗ trợ;
-   quy trình ca trễ, không đến và điều phối lại do staff thực hiện. Hiện hỗ trợ
-   lưu phản hồi mới nhất; phản hồi không tự sửa đơn hoặc giao dịch tiền mặt.
+4. **Vận hành sự cố:** bổ sung bằng chứng/ảnh, phân công staff và SLA;
+   quy trình ca trễ, không đến và điều phối lại do staff thực hiện. Đã có hội thoại
+   và lịch sử phản hồi; trao đổi không tự sửa đơn hoặc giao dịch tiền mặt.
 5. **Dọn luồng cũ:** thống nhất khách sử dụng app/web khách và cleaner sử dụng
    hai dự án riêng; rà các màn hình cleaner cũ còn nằm trong ứng dụng khách.
 6. **Phát hành:** kiểm thử UI trên điện thoại thật, tạo bản cài, xác nhận API
@@ -58,9 +60,12 @@ cùng mã trả 409. Mỗi bên chỉ xem được yêu cầu do chính mình g�
 Admin/Staff dùng `/api/management/support` để tra cứu và cập nhật. Gửi kèm
 `version` đang xem; dữ liệu bị sửa ở nơi khác sẽ trả 409. Đóng yêu cầu phải
 có phản hồi ít nhất 10 ký tự. Thao tác cập nhật, audit và thông báo nằm trong
-cùng transaction. Có thể mở lại yêu cầu; đây chưa phải hệ thống chat.
+cùng transaction. Tin nhắn bổ sung từ người báo mở lại yêu cầu đã giải quyết;
+Admin/Staff có thể mở lại bằng thao tác xử lý hiện tại.
 
-Chưa có tệp đính kèm, hội thoại nhiều tin nhắn, phân công nhân viên hoặc SLA.
+Đã có hội thoại nhiều tin nhắn, chống gửi trùng và tải lịch sử theo từng yêu cầu.
+Xem [SUPPORT_CONVERSATIONS.md](SUPPORT_CONVERSATIONS.md). Chưa có tệp đính kèm,
+phân công nhân viên, SLA hoặc cập nhật hội thoại qua WebSocket/push.
 Không có cơ chế tự thu/hoàn tiền hay sửa trạng thái đơn qua xử lý hỗ trợ.
 
 ## Đổi mật khẩu: phạm vi bản hiện tại

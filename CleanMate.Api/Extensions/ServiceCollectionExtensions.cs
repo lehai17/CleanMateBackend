@@ -34,6 +34,9 @@ public static class ServiceCollectionExtensions
         {
             options.RejectionStatusCode = 429;
             options.AddPublicAuthPolicies(configuration);
+            options.AddPolicy("support-reply", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit=20,Window=TimeSpan.FromMinutes(1),QueueLimit=0 }));
             options.AddPolicy("password-change", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
