@@ -24,7 +24,10 @@ var api = ApiApplication.Build([], builder =>
         ["Jwt:Key"] = "cleanmate-system-tests-only-signing-secret-at-least-32-bytes",
         ["Jwt:Issuer"] = "CleanMateSystemTests",
         ["Jwt:Audience"] = "CleanMateSystemTests",
-        ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:13000"
+        ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:13000",
+        // Functional suites share one IP; dedicated integration tests exercise low quotas.
+        ["RateLimits:Login:PermitLimit"] = "10000",
+        ["RateLimits:Registration:PermitLimit"] = "10000"
     });
     builder.WebHost.UseUrls("http://127.0.0.1:15238");
 });

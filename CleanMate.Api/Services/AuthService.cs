@@ -56,7 +56,7 @@ public class AuthService
 
     public async Task<AuthResponseDto?> LoginAsync(AppDbContext db, LoginDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password)) return null;
+        if (string.IsNullOrWhiteSpace(dto.Email) || dto.Email.Length > 254 || string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length > 128) return null;
         var email = dto.Email.Trim().ToLowerInvariant();
         var user = await db.Users
             .Include(entry => entry.CleanerProfile)

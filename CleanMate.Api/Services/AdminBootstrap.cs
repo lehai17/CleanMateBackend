@@ -9,8 +9,8 @@ public static class AdminBootstrap
     public static async Task CreateAsync(AppDbContext db, string email, string password, string name)
     {
         if (!System.Net.Mail.MailAddress.TryCreate(email.Trim(), out var address) || address.Address != email.Trim() ||
-            password.Length is < 12 or > 128 || string.IsNullOrWhiteSpace(name) || name.Length > 200)
-            throw new InvalidOperationException("Provide a valid email, name and password (12..128 characters).");
+            string.IsNullOrWhiteSpace(password) || password.Length < 12 || System.Text.Encoding.UTF8.GetByteCount(password) > 72 || string.IsNullOrWhiteSpace(name) || name.Length > 200)
+            throw new InvalidOperationException("Provide a valid email, name and password (at least 12 characters, at most 72 UTF-8 bytes).");
         var normalized = address.Address.ToLowerInvariant();
         var existing = await db.Users.SingleOrDefaultAsync(u => u.Email == normalized);
         if (existing is not null)

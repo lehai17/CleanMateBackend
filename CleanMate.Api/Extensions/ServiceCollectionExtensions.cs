@@ -29,17 +29,20 @@ public static class ServiceCollectionExtensions
         services.AddCleanMateDb(configuration);
         services.AddCleanMateCors(configuration);
         services.AddCleanMateAuth(configuration);
+        services.Configure<ForwardedHeadersOptions>(options => options.ConfigureProxies(configuration));
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = 429;
+            options.AddPublicAuthPolicies(configuration);
             options.AddPolicy("password-change", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
             options.OnRejected = async (context, cancellation) =>
             {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter,out var retry))
-                    context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(retry.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                await context.HttpContext.Response.WriteAsJsonAsync(new { message = "Bạn đã thực hiện thao tác bảo mật quá nhiều lần. Vui lòng thử lại sau 5 phút." },cancellation);
+                var seconds = context.Lease.TryGetMetadata(MetadataName.RetryAfter,out var retry) ? Math.Max(1,(int)Math.Ceiling(retry.TotalSeconds)) : 300;
+                context.HttpContext.Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                context.HttpContext.Response.Headers.CacheControl = "no-store";
+                await context.HttpContext.Response.WriteAsJsonAsync(new { message = $"Thao tác quá nhiều lần. Vui lòng thử lại sau {seconds} giây.",retryAfterSeconds=seconds },cancellation);
             };
         });
         services.AddScoped<CurrentUserService>();
