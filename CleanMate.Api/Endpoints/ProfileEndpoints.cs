@@ -3,6 +3,7 @@ using CleanMate.Api.Domain.Entities;
 using CleanMate.Api.Infrastructure;
 using CleanMate.Api.Services;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace CleanMate.Api.Endpoints;
 
@@ -54,11 +55,12 @@ public static class ProfileEndpoints
             {
                 return Results.BadRequest(new { message = "User is already registered as cleaner." });
             }
+            if (user.Role != UserRole.Customer) return Results.Forbid();
 
-            user.Role = UserRole.Cleaner;
             user.CleanerProfile = new CleanerProfile
             {
                 UserId = user.Id,
+                SubmittedAt = DateTime.UtcNow,
                 Bio = dto.Bio?.Trim() ?? string.Empty,
                 City = string.IsNullOrWhiteSpace(dto.City) ? "Ha Noi" : dto.City.Trim(),
                 AddressText = string.IsNullOrWhiteSpace(dto.AddressText)
@@ -71,6 +73,26 @@ public static class ProfileEndpoints
             return Results.Ok(currentUserService.MapUser(user));
         });
 
+        group.MapPut("/cleaner-application", async (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal, CleanerRegistrationDto dto) =>
+        {
+            var user = await users.GetCurrentUserAsync(db, principal);
+            if (user?.CleanerProfile is null) return Results.NotFound();
+            if (user.CleanerProfile.ReviewStatus is not ("Rejected" or "NeedsInfo"))
+                return Results.Conflict(new { message = "Chỉ gửi lại hồ sơ bị từ chối hoặc cần bổ sung." });
+            if (string.IsNullOrWhiteSpace(dto.City) || dto.City.Length > 200 || dto.Bio?.Length > 2000 || dto.AddressText?.Length > 500)
+                return Results.BadRequest(new { message = "Vui lòng nhập thành phố, giới thiệu tối đa 2000 ký tự và địa chỉ tối đa 500 ký tự." });
+            var oldStatus = user.CleanerProfile.ReviewStatus;
+            var count = await db.CleanerProfiles.Where(c => c.Id == user.CleanerProfile.Id && c.ReviewStatus == oldStatus)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.ReviewStatus, "Pending").SetProperty(c => c.ReviewReason, (string?)null)
+                    .SetProperty(c => c.Bio, dto.Bio == null ? "" : dto.Bio.Trim()).SetProperty(c => c.City, dto.City.Trim())
+                    .SetProperty(c => c.AddressText, dto.AddressText == null ? "" : dto.AddressText.Trim())
+                    .SetProperty(c => c.ReviewedAt, (DateTime?)null).SetProperty(c => c.ReviewedById, (int?)null)
+                    .SetProperty(c => c.SubmittedAt, (DateTime?)DateTime.UtcNow));
+            if (count != 1) return Results.Conflict(new { message = "Hồ sơ đã thay đổi. Vui lòng tải lại." });
+            db.ChangeTracker.Clear();
+            return Results.Ok(users.MapUser((await users.GetCurrentUserAsync(db, principal))!));
+        });
+
         app.MapPut("/api/cleaner/profile", async (AppDbContext db, CurrentUserService currentUserService, ClaimsPrincipal principal, CleanerProfileUpdateDto dto) =>
         {
             if (string.IsNullOrWhiteSpace(dto.FullName))
@@ -80,6 +102,7 @@ public static class ProfileEndpoints
             {
                 return Results.NotFound(new { message = "Cleaner profile not found." });
             }
+            if (user.Role != UserRole.Cleaner || user.CleanerProfile.ReviewStatus != "Approved") return Results.Forbid();
 
             user.FullName = dto.FullName.Trim();
             user.PhoneNumber = currentUserService.NormalizeOptional(dto.PhoneNumber);

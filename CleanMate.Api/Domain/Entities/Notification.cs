@@ -4,7 +4,8 @@ public class Notification
 {
     public int Id { get; set; }
     public int UserId { get; set; }
-    public int BookingId { get; set; }
+    public int? BookingId { get; set; }
+    public string? Target { get; set; }
     public string EventKey { get; set; } = "";
     public string Title { get; set; } = "";
     public string Message { get; set; } = "";

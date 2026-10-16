@@ -12,6 +12,7 @@ public static class PublicEndpoints
         app.MapGet("/api/cleaners", async (AppDbContext db) =>
         {
             var list = await db.CleanerProfiles
+                .Where(profile => profile.ReviewStatus == "Approved" && profile.User!.IsActive && profile.User.Role == UserRole.Cleaner)
                 .Include(profile => profile.User)
                 .Select(profile => new
                 {

@@ -6,7 +6,9 @@ public record CleanerProfileResponseDto(
     string City,
     string AddressText,
     decimal HourlyRate,
-    double AvgRating);
+    double AvgRating,
+    string ReviewStatus,
+    string? ReviewReason);
 
 public record UserResponseDto(
     int Id,

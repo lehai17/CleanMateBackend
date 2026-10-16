@@ -43,13 +43,13 @@ public class AuthController(CleanerApiClient api) : Controller
         }
         var auth = await api.AuthenticateAsync("api/auth/register",
             new { model.FullName, model.Email, model.Password, role = "Cleaner" });
-        if (auth is null || auth.User.Role != "Cleaner" || !auth.User.IsCleaner)
+        if (auth is null)
         {
             model.ErrorMessage = "Không thể đăng ký. Kiểm tra email và thông tin đã nhập.";
             return View(model);
         }
-        SignIn(auth);
-        return RedirectToAction("Index", "Dashboard");
+        TempData["ApplicationMessage"] = "Đã gửi hồ sơ. Vui lòng chờ nhân viên duyệt rồi đăng nhập lại để nhận việc.";
+        return RedirectToAction("Login");
     }
 
     public IActionResult Logout()

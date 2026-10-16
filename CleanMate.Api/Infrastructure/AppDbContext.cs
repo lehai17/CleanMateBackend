@@ -15,6 +15,9 @@ public class AppDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ServiceOffering> ServiceOfferings => Set<ServiceOffering>();
+    public DbSet<AdminAudit> AdminAudits => Set<AdminAudit>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -44,6 +47,40 @@ public class AppDbContext : DbContext
         b.Entity<Notification>().HasIndex(n => new { n.UserId, n.EventKey }).IsUnique();
         b.Entity<Notification>().HasIndex(n => new { n.UserId, n.Id });
         b.Entity<Notification>().HasIndex(n => new { n.UserId, n.ReadAt });
+        b.Entity<Notification>().Property(n => n.Target).HasMaxLength(32);
+        b.Entity<User>().Property(u => u.IsActive).HasDefaultValue(true);
+        b.Entity<User>().Property(u => u.TokenVersion).HasDefaultValue(0);
+        b.Entity<CleanerProfile>().Property(c => c.ReviewStatus).HasMaxLength(32).HasDefaultValue("Pending");
+        b.Entity<CleanerProfile>().Property(c => c.ReviewReason).HasMaxLength(1000);
+        b.Entity<CleanerProfile>().Property(c => c.SubmittedAt).HasConversion(utc);
+        b.Entity<CleanerProfile>().Property(c => c.ReviewedAt).HasConversion(utc);
+        b.Entity<CleanerProfile>().HasOne<User>().WithMany().HasForeignKey(c => c.ReviewedById).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<ServiceOffering>().HasKey(s => s.Key);
+        b.Entity<ServiceOffering>().Property(s => s.Key).HasMaxLength(32);
+        b.Entity<ServiceOffering>().Property(s => s.Name).HasMaxLength(200);
+        b.Entity<ServiceOffering>().Property(s => s.HourlyRate).HasPrecision(18, 2);
+        b.Entity<ServiceOffering>().Property(s => s.UpdatedAt).HasConversion(utc);
+        b.Entity<ServiceOffering>().HasData(
+            new ServiceOffering { Key = "cleaning", Name = "Dọn Dẹp Tổng Quát", HourlyRate = 70000 },
+            new ServiceOffering { Key = "cooking", Name = "Nấu Ăn & Rửa Bát", HourlyRate = 90000 },
+            new ServiceOffering { Key = "laundry", Name = "Giặt Ủi Quần Áo", HourlyRate = 70000 },
+            new ServiceOffering { Key = "childcare", Name = "Chăm Sóc Trẻ Em", HourlyRate = 100000 });
+        b.Entity<AdminAudit>().HasOne<User>().WithMany().HasForeignKey(a => a.ActorId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<AdminAudit>().Property(a => a.Action).HasMaxLength(64);
+        b.Entity<AdminAudit>().Property(a => a.Target).HasMaxLength(128);
+        b.Entity<AdminAudit>().Property(a => a.Details).HasMaxLength(12000);
+        b.Entity<AdminAudit>().Property(a => a.CreatedAt).HasConversion(utc);
+        b.Entity<SupportTicket>().HasOne<Booking>().WithMany().HasForeignKey(t => t.BookingId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasOne(t => t.Reporter).WithMany().HasForeignKey(t => t.ReporterId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasOne<User>().WithMany().HasForeignKey(t => t.RespondedById).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportTicket>().HasIndex(t => new { t.ReporterId, t.RequestId }).IsUnique();
+        b.Entity<SupportTicket>().HasIndex(t => new { t.Status, t.Id });
+        b.Entity<SupportTicket>().Property(t => t.Category).HasMaxLength(32);
+        b.Entity<SupportTicket>().Property(t => t.Status).HasMaxLength(32);
+        b.Entity<SupportTicket>().Property(t => t.Description).HasMaxLength(2000);
+        b.Entity<SupportTicket>().Property(t => t.Response).HasMaxLength(2000);
+        b.Entity<SupportTicket>().Property(t => t.CreatedAt).HasConversion(utc);
+        b.Entity<SupportTicket>().Property(t => t.UpdatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)

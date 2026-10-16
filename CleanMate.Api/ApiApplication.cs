@@ -19,6 +19,8 @@ public static class ApiApplication
         app.MapCleanerJobEndpoints();
         app.MapPaymentEndpoints();
         app.MapNotificationEndpoints();
+        app.MapManagementEndpoints();
+        app.MapSupportEndpoints();
         return app;
     }
 }

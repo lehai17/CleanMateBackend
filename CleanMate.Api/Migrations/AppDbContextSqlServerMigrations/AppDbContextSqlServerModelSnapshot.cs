@@ -107,6 +107,42 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.AdminAudit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("ActorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.ToTable("AdminAudits");
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.CleanerProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -140,10 +176,32 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.Property<double>("Longitude")
                         .HasColumnType("float");
 
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReviewStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedById")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReviewedById");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -159,7 +217,7 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BookingId")
+                    b.Property<int?>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -180,6 +238,10 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Target")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -293,6 +355,146 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.ServiceOffering", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal>("HourlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinHours")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("ServiceOfferings");
+
+                    b.HasData(
+                        new
+                        {
+                            Key = "cleaning",
+                            HourlyRate = 70000m,
+                            IsActive = true,
+                            MaxHours = 8,
+                            MinHours = 1,
+                            Name = "Dọn Dẹp Tổng Quát",
+                            Version = 1
+                        },
+                        new
+                        {
+                            Key = "cooking",
+                            HourlyRate = 90000m,
+                            IsActive = true,
+                            MaxHours = 8,
+                            MinHours = 1,
+                            Name = "Nấu Ăn & Rửa Bát",
+                            Version = 1
+                        },
+                        new
+                        {
+                            Key = "laundry",
+                            HourlyRate = 70000m,
+                            IsActive = true,
+                            MaxHours = 8,
+                            MinHours = 1,
+                            Name = "Giặt Ủi Quần Áo",
+                            Version = 1
+                        },
+                        new
+                        {
+                            Key = "childcare",
+                            HourlyRate = 100000m,
+                            IsActive = true,
+                            MaxHours = 8,
+                            MinHours = 1,
+                            Name = "Chăm Sóc Trẻ Em",
+                            Version = 1
+                        });
+                });
+
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportTicket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("ReporterId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("RespondedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Response")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("RespondedById");
+
+                    b.HasIndex("ReporterId", "RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "Id");
+
+                    b.ToTable("SupportTickets");
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -312,6 +514,11 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -321,6 +528,11 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
 
                     b.Property<int>("Role")
                         .HasColumnType("int");
+
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
@@ -347,8 +559,22 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.AdminAudit", b =>
+                {
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.CleanerProfile", b =>
                 {
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CleanMate.Api.Domain.Entities.User", "User")
                         .WithOne("CleanerProfile")
                         .HasForeignKey("CleanMate.Api.Domain.Entities.CleanerProfile", "UserId")
@@ -363,8 +589,7 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.HasOne("Booking", null)
                         .WithMany()
                         .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CleanMate.Api.Domain.Entities.User", null)
                         .WithMany()
@@ -382,6 +607,28 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportTicket", b =>
+                {
+                    b.HasOne("Booking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RespondedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("Booking", b =>

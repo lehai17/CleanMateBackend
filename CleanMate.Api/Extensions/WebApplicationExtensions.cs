@@ -16,6 +16,7 @@ public static class WebApplicationExtensions
         app.UseRouting();
         app.UseCors(ServiceCollectionExtensions.CorsPolicy);
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
         app.MapControllers();
 

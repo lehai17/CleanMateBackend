@@ -21,7 +21,7 @@ public static class NotificationEndpoints
                     (beforeId == null || n.Id < beforeId))
                 .OrderByDescending(n => n.Id).Take(21)
                 .Select(n => new { n.Id, n.BookingId, n.Title, n.Message, n.CreatedAt, n.ReadAt,
-                    target = n.ForCleaner ? "CleanerJobs" : "Orders" }).ToListAsync();
+                    target = n.Target ?? (n.ForCleaner ? "CleanerJobs" : "Orders") }).ToListAsync();
             var items = rows.Take(20).ToList();
             return Results.Ok(new { items,
                 unreadCount = await db.Notifications.CountAsync(n => n.UserId == userId && n.ReadAt == null),

@@ -23,7 +23,8 @@ public class AuthService
     public async Task<AuthResponseDto> RegisterAsync(AppDbContext db, RegisterDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
-        var requestedRole = dto.Role == UserRole.Admin ? UserRole.Customer : dto.Role;
+        // Public registration never grants a staff role or immediate cleaner access.
+        var requestedRole = UserRole.Customer;
 
         var user = new User
         {
@@ -35,11 +36,12 @@ public class AuthService
             Role = requestedRole
         };
 
-        if (requestedRole == UserRole.Cleaner)
+        if (dto.Role == UserRole.Cleaner)
         {
             user.CleanerProfile = new CleanerProfile
             {
                 UserId = user.Id,
+                SubmittedAt = DateTime.UtcNow,
                 Bio = "New cleaner",
                 HourlyRate = 120000m,
                 City = "Ha Noi",
@@ -60,7 +62,7 @@ public class AuthService
             .Include(entry => entry.CleanerProfile)
             .FirstOrDefaultAsync(entry => entry.Email == email);
 
-        if (user is null || string.IsNullOrEmpty(user.PasswordHash) || !BCryptNet.Verify(dto.Password, user.PasswordHash))
+        if (user is null || !user.IsActive || string.IsNullOrEmpty(user.PasswordHash) || !BCryptNet.Verify(dto.Password, user.PasswordHash))
         {
             return null;
         }
@@ -110,7 +112,7 @@ public class AuthService
             await db.SaveChangesAsync();
         }
 
-        return _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
+        return !user.IsActive ? null : _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
     }
 
     public Task<bool> EmailExistsAsync(AppDbContext db, string email)

@@ -1,9 +1,24 @@
 # Backend and system tests
 
-Verified on 16 October 2026: 82 backend tests passed; build completed with zero
-warnings/errors. The companion suite passed 21 frontend and 28 Playwright cases.
+Verified on 16 October 2026: 105 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 29 frontend tests, 36 customer-web
+Playwright cases, 14 admin Playwright cases, 20 cleaner-web Playwright cases,
+8 cleaner-web Node tests, 7 cleaner-mobile tests and 1 admin server integration test.
 
 From backend/:
+
+Password tests cover all four roles, old sessions, legacy JWT compatibility,
+malformed version claims, concurrent changes, unchanged credentials after invalid
+input, Google-only accounts, UTF-8 BCrypt boundaries and per-account attempt limits.
+Logout-all tests cover two old sessions, unchanged passwords, caller-only revocation,
+concurrent requests, Google-only accounts and the shared security attempt quota.
+The new AddTokenVersion migrations preserve existing accounts at version zero.
+
+See PROJECT_STATUS.md for feature scope, remaining work and the booking-support
+workflow. New SQL Server/PostgreSQL migrations add SupportTickets; no application
+database was migrated during testing. Support tests cover private ownership,
+concurrent retry deduplication, validation, staff version conflicts, atomic
+audit/notifications and unchanged booking/cash records after staff resolution.
 
 ```powershell
 dotnet restore CleanMate.sln
@@ -25,6 +40,27 @@ server. A live PostgreSQL upgrade remains a separate deployment check.
 CleanMate.SystemTests.Host binds the API, React production build and MVC portal to
 loopback ports 15238, 13000 and 15080. It uses a separate generated database.
 The shutdown control exists only in that test executable. See ../web/TESTING.md.
+
+## Management portal
+
+The standalone portal lives in ../admin with its own Git repository. See
+../admin/README.md for startup, the local --create-admin bootstrap command and
+the role matrix. It shares this API and database. Public registration cannot
+grant Admin/Staff; applications require review before cleaner job access.
+Staff can review applications and search bookings. Admin alone can change
+service prices or manage Staff access. Locked Staff tokens stop working.
+
+The management migrations exist for SQL Server and PostgreSQL. They preserve
+existing approved cleaners and seed the previous four service rates. New
+applications default to Pending. Prices and duration limits come from the
+catalog; existing booking prices do not change. ExpectedPrice conflicts require
+the client to refresh its quote. Mutations write audit records in the same
+transaction. Tests cover permissions, concurrent reviews, stale price versions,
+token invalidation, legacy migration and admin bootstrap.
+
+No production migration/bootstrap was executed by the tests. SQL Server upgrade
+was exercised on a generated legacy database; PostgreSQL SQL/snapshots were
+checked, but a live PostgreSQL migration still requires deployment validation.
 
 ## Direct cash between customer and cleaner
 
