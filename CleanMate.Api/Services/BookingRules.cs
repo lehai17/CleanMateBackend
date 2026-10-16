@@ -16,8 +16,7 @@ public static class BookingRules
         if (string.IsNullOrEmpty(dto.ServiceKey) || !HourlyRates.ContainsKey(dto.ServiceKey))
             return "Vui lòng chọn dịch vụ hợp lệ.";
         if (dto.DurationHours is < 1 or > 8) return "Thời lượng phải từ 1 đến 8 giờ.";
-        if (dto.StartTime <= now || dto.StartTime > now.AddMonths(6))
-            return "Thời gian bắt đầu phải ở tương lai, trong vòng 6 tháng.";
+        if (ValidateStartTime(dto.StartTime, now) is { } timeError) return timeError;
         if (string.IsNullOrWhiteSpace(dto.Address) || dto.Address.Trim().Length > 500)
             return "Địa chỉ là bắt buộc và tối đa 500 ký tự.";
         if (dto.Notes?.Length > 2000) return "Ghi chú tối đa 2000 ký tự.";
@@ -32,4 +31,8 @@ public static class BookingRules
         if (dto.PaymentMethod != "cash") return "Hiện chỉ hỗ trợ thanh toán tiền mặt.";
         return null;
     }
+
+    public static string? ValidateStartTime(DateTimeOffset startTime, DateTimeOffset now) =>
+        startTime <= now || startTime > now.AddMonths(6)
+            ? "Thời gian bắt đầu phải ở tương lai, trong vòng 6 tháng." : null;
 }

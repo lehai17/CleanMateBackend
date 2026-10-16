@@ -3,6 +3,8 @@ using CleanMate.Api.Infrastructure;
 using CleanMate.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace CleanMate.Api.Endpoints;
 
@@ -15,6 +17,18 @@ public static class BookingEndpoints
         {
             var user = await users.GetCurrentUserAsync(db, principal);
             if (user is null) return Results.Unauthorized();
+            if (dto.RequestId == Guid.Empty)
+                return Results.BadRequest(new { message = "Mã yêu cầu đặt lịch không hợp lệ." });
+            var requestHash = dto.RequestId is null ? null : Convert.ToHexString(SHA256.HashData(
+                JsonSerializer.SerializeToUtf8Bytes(new { dto.ServiceKey, start = dto.StartTime.UtcTicks,
+                    dto.DurationHours, address = dto.Address?.Trim(), notes = dto.Notes?.Trim() ?? "",
+                    dto.PaymentMethod, contactName = dto.ContactName?.Trim(), contactPhone = dto.ContactPhone?.Trim() })));
+            if (dto.RequestId is not null)
+            {
+                var existing = await db.Bookings.AsNoTracking().SingleOrDefaultAsync(b =>
+                    b.UserId == user.Id && b.RequestId == dto.RequestId);
+                if (existing is not null) return Replay(existing, requestHash!);
+            }
             // Preserve the booking contact rather than reading a mutable profile later.
             // Older clients can omit these fields and use their current profile once.
             dto = dto with { ContactName = dto.ContactName ?? user.FullName,
@@ -23,15 +37,25 @@ public static class BookingEndpoints
             if (error is not null) return Results.BadRequest(new { message = error });
             var booking = new Booking
             {
-                UserId = user.Id, StartTime = dto.StartTime.UtcDateTime, DurationHours = dto.DurationHours,
+                UserId = user.Id, RequestId = dto.RequestId, RequestHash = requestHash,
+                StartTime = dto.StartTime.UtcDateTime, DurationHours = dto.DurationHours,
                 Price = BookingRules.HourlyRates[dto.ServiceKey] * dto.DurationHours,
-                Address = dto.Address.Trim(), Notes = $"[{dto.ServiceKey}] {dto.Notes?.Trim()}".Trim(),
+                Address = dto.Address!.Trim(), Notes = $"[{dto.ServiceKey}] {dto.Notes?.Trim()}".Trim(),
                 ContactName = dto.ContactName?.Trim(), ContactPhone = dto.ContactPhone?.Trim(),
                 PaymentMethod = "cash", CreatedAt = DateTime.UtcNow, Status = BookingStatuses.Pending
             };
             db.Bookings.Add(booking);
-            await db.SaveChangesAsync();
-            return Results.Ok(new { booking.Id, booking.StartTime, booking.Price, booking.Status });
+            try { await db.SaveChangesAsync(); }
+            catch (DbUpdateException) when (dto.RequestId is not null)
+            {
+                // The unique owner/request key arbitrates concurrent retries across API instances.
+                db.ChangeTracker.Clear();
+                var existing = await db.Bookings.AsNoTracking().SingleOrDefaultAsync(b =>
+                    b.UserId == user.Id && b.RequestId == dto.RequestId);
+                if (existing is null) throw;
+                return Replay(existing, requestHash!);
+            }
+            return BookingReceipt(booking);
         });
         var orders = app.MapGroup("/api/orders").WithTags("Orders").RequireAuthorization();
         orders.MapGet("/", async (AppDbContext db, CurrentUserService users, ClaimsPrincipal principal) =>
@@ -56,11 +80,43 @@ public static class BookingEndpoints
         // Compatibility for old clients: retain records instead of deleting history.
         orders.MapDelete("/{id:int}", CancelAsync);
         orders.MapPut("/{id:int}/cancel", CancelAsync);
+        orders.MapPut("/{id:int}/reschedule", RescheduleAsync);
         orders.MapPut("/{id:int}/confirm-completion", ConfirmCompletionAsync);
         return app;
     }
 
     public record ConfirmCompletionDto(int Rating, string? Review);
+    public record RescheduleDto(DateTimeOffset StartTime, DateTimeOffset ExpectedStartTime);
+
+    private static async Task<IResult> RescheduleAsync(int id, RescheduleDto dto, AppDbContext db,
+        CurrentUserService users, ClaimsPrincipal principal)
+    {
+        var userId = users.GetCurrentUserId(principal);
+        if (userId is null) return Results.Unauthorized();
+        var booking = await db.Bookings.AsNoTracking().SingleOrDefaultAsync(b => b.Id == id);
+        if (booking is null) return Results.NotFound();
+        if (booking.UserId != userId) return Results.Forbid();
+        var now = DateTimeOffset.UtcNow;
+        if (BookingRules.ValidateStartTime(dto.StartTime, now) is { } error)
+            return Results.BadRequest(new { message = error });
+        var start = dto.StartTime.UtcDateTime;
+        var expected = dto.ExpectedStartTime.UtcDateTime;
+        // Compare the schedule the customer saw, and update only while still unassigned.
+        var count = await db.Bookings.Where(b => b.Id == id && b.UserId == userId &&
+                b.Status == BookingStatuses.Pending && b.CleanerId == null &&
+                b.StartTime == expected && b.StartTime > DateTime.UtcNow)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.StartTime, start));
+        return count == 1
+            ? Results.Ok(new { id, date = start, booking.Price, status = BookingStatuses.Pending })
+            : Results.Conflict(new { message = "Đơn đã thay đổi, đã có cleaner nhận hoặc đã đến giờ làm. Vui lòng tải lại trước khi đổi lịch." });
+    }
+
+    private static IResult BookingReceipt(Booking booking) =>
+        Results.Ok(new { booking.Id, booking.StartTime, booking.Price, booking.Status });
+
+    private static IResult Replay(Booking booking, string hash) => booking.RequestHash == hash
+        ? BookingReceipt(booking)
+        : Results.Conflict(new { message = "Mã yêu cầu này đã được dùng cho thông tin đặt lịch khác. Vui lòng tải lại đơn hàng." });
 
     private static async Task<IResult> ConfirmCompletionAsync(int id, ConfirmCompletionDto dto, AppDbContext db,
         CurrentUserService users, ClaimsPrincipal principal)

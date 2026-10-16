@@ -122,9 +122,10 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     private static object Booking(object? startTime = null, string serviceKey = "cleaning", int durationHours = 2,
-        string address = "123 Test Street", string paymentMethod = "cash", string? contactName = null, string? contactPhone = null) =>
+        string address = "123 Test Street", string paymentMethod = "cash", string? contactName = null, string? contactPhone = null,
+        Guid? requestId = null) =>
         new { serviceKey, startTime = startTime ?? DateTimeOffset.UtcNow.AddDays(2), durationHours,
-            address, notes = "Test booking", paymentMethod, contactName, contactPhone,
+            address, notes = "Test booking", paymentMethod, contactName, contactPhone, requestId,
             price = 1, userId = -1, cleanerId = 999, status = "Completed",
             startedAt = "2000-01-01T00:00:00Z", completedAt = "2000-01-01T00:00:00Z" };
 
@@ -140,6 +141,248 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var response = await client.PostAsJsonAsync("/api/bookings", Booking(startTime: start, durationHours: hours));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    [Fact]
+    public async Task Concurrent_booking_retries_create_one_order_with_the_same_receipt()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var payload = Booking(requestId: Guid.NewGuid());
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => customer.PostAsJsonAsync("/api/bookings", payload)));
+        var ids = new List<int>();
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var receipt = await response.Content.ReadFromJsonAsync<JsonElement>();
+            ids.Add(receipt.GetProperty("id").GetInt32());
+            Assert.Equal(140000, receipt.GetProperty("price").GetDecimal());
+        }
+        Assert.Single(ids.Distinct());
+        Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+    }
+
+    [Fact]
+    public async Task Owner_can_reschedule_pending_order_preserving_quote_contact_and_creation_request()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var payload = Booking(start, contactName: "Booking Contact", contactPhone: "0901234567", requestId: Guid.NewGuid());
+        var created = await customer.PostAsJsonAsync("/api/bookings", payload);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        var target = start.AddDays(1).ToOffset(TimeSpan.FromHours(7));
+        var response = await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule", new
+        { startTime = target, expectedStartTime = start, price = 1, cleanerId = 999, durationHours = 8, status = "Completed" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(target.UtcDateTime, order.GetProperty("date").GetDateTime());
+        Assert.EndsWith("Z", order.GetProperty("date").GetString());
+        Assert.Equal(140000, order.GetProperty("price").GetDecimal());
+        Assert.Equal("Booking Contact", order.GetProperty("contactName").GetString());
+        Assert.Equal("Pending", order.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, order.GetProperty("cleaner").ValueKind);
+        var job = (await cleaner.GetFromJsonAsync<JsonElement[]>("/api/cleaner/jobs/available"))!.Single(b => b.GetProperty("id").GetInt32() == id);
+        Assert.Equal(2, job.GetProperty("durationHours").GetInt32());
+        Assert.Equal(target.UtcDateTime, job.GetProperty("startTime").GetDateTime());
+        var replay = await customer.PostAsJsonAsync("/api/bookings", payload);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Equal(id, (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32());
+        Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+    }
+
+    [Fact]
+    public async Task Rescheduling_requires_owner_and_an_existing_booking()
+    {
+        using var owner = fixture.Client((await Register()).Token);
+        using var stranger = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        using var guest = fixture.Client();
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var id = await CreateAt(owner, start);
+        var dto = new { startTime = start.AddDays(1), expectedStartTime = start };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.PutAsJsonAsync($"/api/orders/{id}/reschedule", dto)).StatusCode);
+        foreach (var client in new[] { stranger, cleaner })
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.PutAsJsonAsync($"/api/orders/{id}/reschedule", dto)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.PutAsJsonAsync("/api/orders/2147483647/reschedule", dto)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Accepted")]
+    [InlineData("InProgress")]
+    [InlineData("Completed")]
+    [InlineData("Cancelled")]
+    public async Task Rescheduling_is_rejected_after_assignment_or_cancellation(string status)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var id = await CreateAt(customer, start);
+        if (status == "Cancelled") await customer.PutAsync($"/api/orders/{id}/cancel", null);
+        else
+        {
+            await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null);
+            if (status is "InProgress" or "Completed") await cleaner.PutAsync($"/api/cleaner/jobs/{id}/start", null);
+            if (status == "Completed") await cleaner.PutAsync($"/api/cleaner/jobs/{id}/complete", null);
+        }
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule",
+            new { startTime = start.AddDays(1), expectedStartTime = start })).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(start.UtcDateTime, order.GetProperty("date").GetDateTime());
+        Assert.Equal(status, order.GetProperty("status").GetString());
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(200)]
+    public async Task Rescheduling_rejects_past_or_excessively_distant_dates(int days)
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var id = await CreateAt(customer, start);
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule",
+            new { startTime = DateTimeOffset.UtcNow.AddDays(days), expectedStartTime = start })).StatusCode);
+        Assert.Equal(start.UtcDateTime, Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!)
+            .GetProperty("date").GetDateTime());
+    }
+
+    [Fact]
+    public async Task Expired_pending_order_cannot_be_revived_by_rescheduling()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var id = await Create(customer);
+        var expired = DateTime.UtcNow.AddHours(-1);
+        using (var scope = fixture.Api.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Bookings.Where(b => b.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(b => b.StartTime, expired));
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule",
+            new { startTime = DateTimeOffset.UtcNow.AddDays(1), expectedStartTime = expired })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Concurrent_schedule_edits_from_the_same_old_date_allow_one_winner()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var id = await CreateAt(customer, start);
+        var responses = await Task.WhenAll(Enumerable.Range(1, 6).Select(offset => customer.PutAsJsonAsync(
+            $"/api/orders/{id}/reschedule", new { startTime = start.AddDays(offset), expectedStartTime = start })));
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(5, responses.Count(r => r.StatusCode == HttpStatusCode.Conflict));
+        var winner = await responses.Single(r => r.StatusCode == HttpStatusCode.OK).Content.ReadFromJsonAsync<JsonElement>();
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(winner.GetProperty("date").GetDateTime(), order.GetProperty("date").GetDateTime());
+    }
+
+    [Fact]
+    public async Task Cancellation_racing_rescheduling_never_resurrects_an_order()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var id = await CreateAt(customer, start);
+        var cancel = customer.PutAsync($"/api/orders/{id}/cancel", null);
+        var edit = customer.PutAsJsonAsync($"/api/orders/{id}/reschedule", new { startTime = start.AddDays(1), expectedStartTime = start });
+        await Task.WhenAll(cancel, edit);
+        Assert.Equal(HttpStatusCode.NoContent, cancel.Result.StatusCode);
+        Assert.Contains(edit.Result.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+        Assert.Equal("Cancelled", Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!).GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task Claim_racing_schedule_edit_cannot_assign_a_new_overlapping_interval()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var reserved = await CreateAt(customer, start);
+        Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{reserved}/accept", null)).StatusCode);
+        for (var i = 0; i < 6; i++)
+        {
+            var original = start.AddHours(4 + i * 3);
+            var id = await CreateAt(customer, original);
+            var accept = cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null);
+            var edit = customer.PutAsJsonAsync($"/api/orders/{id}/reschedule",
+                new { startTime = start.AddHours(1), expectedStartTime = original });
+            await Task.WhenAll(accept, edit);
+            Assert.Contains(accept.Result.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+            Assert.Contains(edit.Result.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+            Assert.False(accept.Result.IsSuccessStatusCode && edit.Result.IsSuccessStatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Reusing_booking_request_with_changed_details_returns_conflict_without_modification()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var key = Guid.NewGuid();
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        Assert.Equal(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/bookings", Booking(start, requestId: key))).StatusCode);
+        foreach (var changed in new[] { Booking(start, address: "Another address", requestId: key),
+            Booking(start, durationHours: 3, requestId: key), Booking(start, contactName: "Another contact", requestId: key),
+            Booking(start, serviceKey: "cooking", requestId: key), Booking(start.AddHours(1), requestId: key) })
+            Assert.Equal(HttpStatusCode.Conflict, (await customer.PostAsJsonAsync("/api/bookings", changed)).StatusCode);
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("123 Test Street", order.GetProperty("address").GetString());
+        Assert.Equal(140000, order.GetProperty("price").GetDecimal());
+    }
+
+    [Fact]
+    public async Task Request_keys_are_scoped_to_owner_and_new_keys_allow_intentional_new_bookings()
+    {
+        using var first = fixture.Client((await Register()).Token);
+        using var second = fixture.Client((await Register()).Token);
+        var key = Guid.NewGuid();
+        var payload = Booking(requestId: key);
+        var a = await first.PostAsJsonAsync("/api/bookings", payload);
+        var b = await second.PostAsJsonAsync("/api/bookings", payload);
+        Assert.Equal(HttpStatusCode.OK, a.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, b.StatusCode);
+        Assert.NotEqual((await a.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32(),
+            (await b.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await first.PostAsJsonAsync("/api/bookings", Booking(requestId: Guid.NewGuid()))).StatusCode);
+        Assert.Equal(2, (await first.GetFromJsonAsync<JsonElement[]>("/api/orders"))!.Length);
+        Assert.Single((await second.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+    }
+
+    [Fact]
+    public async Task Booking_retry_after_profile_change_and_cancellation_returns_existing_order_without_resurrection()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var payload = Booking(requestId: Guid.NewGuid());
+        var first = await customer.PostAsJsonAsync("/api/bookings", payload);
+        var receipt = await first.Content.ReadFromJsonAsync<JsonElement>();
+        var id = receipt.GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync("/api/profile", new
+        { fullName = "Changed profile", phoneNumber = "0909999999" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await customer.PutAsync($"/api/orders/{id}/cancel", null)).StatusCode);
+        var retry = await customer.PostAsJsonAsync("/api/bookings", payload);
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        var saved = await retry.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(id, saved.GetProperty("id").GetInt32());
+        Assert.Equal("Cancelled", saved.GetProperty("status").GetString());
+        var order = Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal("Integration User", order.GetProperty("contactName").GetString());
+    }
+
+    [Fact]
+    public async Task Failed_booking_validation_does_not_consume_request_key_and_empty_key_is_rejected()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var key = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", Booking(requestId: Guid.Empty))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.PostAsJsonAsync("/api/bookings", Booking(durationHours: 0, requestId: key))).StatusCode);
+        Assert.Empty((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+        Assert.Equal(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/bookings", Booking(requestId: key))).StatusCode);
+        Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!);
+    }
+
+    [Fact]
+    public async Task Older_clients_can_create_multiple_orders_without_request_keys()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var payload = Booking();
+        for (var i = 0; i < 2; i++)
+            Assert.Equal(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/bookings", payload)).StatusCode);
+        Assert.Equal(2, (await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!.Length);
     }
 
     [Fact]

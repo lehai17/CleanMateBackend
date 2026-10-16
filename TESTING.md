@@ -1,7 +1,7 @@
 # Backend and system tests
 
-Verified on 15 October 2026: 58 backend tests passed; build completed with zero
-warnings/errors. The companion suite passed 14 frontend and 18 Playwright cases.
+Verified on 15 October 2026: 76 backend tests passed; build completed with zero
+warnings/errors. The companion suite passed 18 frontend and 24 Playwright cases.
 
 From backend/:
 
@@ -127,3 +127,43 @@ previous profile fallback in cleaner lists. SQL Server migrations and the live
 API are tested; PostgreSQL schema/model checks do not replace a live upgrade test.
 Integration coverage includes separate contact/account identities, profile edits,
 old clients, absent phones, legacy rows, invalid input and length boundaries.
+
+## Safe booking retries
+
+POST /api/bookings accepts an optional nonempty UUID requestId. A unique
+(UserId, RequestId) database index and a stored SHA-256 fingerprint of normalized
+booking input ensure simultaneous requests with the same owner/key create one
+booking. An unchanged replay returns its ID, original quote/start and current
+status; it never resets a cancelled or progressed booking. Profile changes do
+not alter the fingerprint for clients that omitted contact fields.
+
+Reusing a key for different booking input returns 409. Validation failures do
+not consume keys. Different owners can use the same key independently, and a
+new key allows a deliberate new booking with identical details. Old clients
+omitting requestId remain supported but receive no retry deduplication.
+
+AddBookingRequestId and AddBookingRequestIdPostgres add nullable metadata and
+the unique index without changing historical orders. The existing owner index
+is retained for history queries, including legacy orders with null keys. Tests
+exercise SQL Server concurrency, isolation, validation and cancelled replays.
+PostgreSQL is checked for model/schema consistency, not live execution.
+
+## Reschedule an unassigned booking
+
+PUT /api/orders/{id}/reschedule accepts startTime and expectedStartTime (the
+original UTC date returned by the orders API). Only the owner can reschedule a
+Pending, unassigned booking whose current start time is still in the future.
+The new time must be in the future and within six months, matching creation rules.
+Price, duration, contact, ownership, payment and order ID are unchanged.
+
+The conditional update checks both status and expectedStartTime. Competing
+schedule edits from the same old date allow one winner; stale views receive 409.
+Cleaner acceptance also compares the start time used for its overlap check,
+preventing a concurrent schedule change from bypassing the cleaner's reservation.
+Cancellation cannot be undone by rescheduling. Accepted, InProgress, Completed,
+Cancelled and expired Pending bookings cannot be rescheduled.
+
+Creation request IDs/hashes are retained. Replaying the original creation request
+returns the same booking with its current schedule. This feature adds no schema
+migration. SQL Server integration tests cover ownership, UTC offsets, tampered
+fields, invalid dates, lifecycle restrictions and concurrent edit/claim/cancel.

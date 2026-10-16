@@ -73,6 +73,13 @@ namespace CleanMate.Api.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("RequestHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -91,6 +98,9 @@ namespace CleanMate.Api.Migrations
                     b.HasIndex("CleanerId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "RequestId")
+                        .IsUnique();
 
                     b.ToTable("Bookings");
                 });
