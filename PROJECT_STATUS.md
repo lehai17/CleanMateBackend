@@ -12,6 +12,10 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 - Web Admin/Staff riêng: dashboard, duyệt cleaner, cấu hình giá, tra cứu đơn,
   quản lý Staff và nhật ký thao tác.
 - Thông báo trong ứng dụng, trạng thái đã đọc, phân trang và mở đúng khu vực.
+- Đổi mật khẩu cho khách, cleaner, Admin/Staff, có giới hạn thử; đổi thành công
+  vô hiệu hóa các JWT cũ và yêu cầu đăng nhập lại. Có audit và thông báo cá nhân.
+- Đăng xuất tất cả thiết bị mà không đổi mật khẩu, có xác nhận trên giao diện;
+  dùng được cả cho tài khoản Google và chỉ thu hồi các phiên CleanMate.
 - Hỗ trợ theo đơn: khách và cleaner được giao ca gửi báo cáo; staff phản hồi,
   cập nhật trạng thái và gửi thông báo cho người báo. Có chống gửi trùng khi
   thử lại, kiểm tra quyền và chống ghi đè cập nhật giữa nhiều staff.
@@ -23,8 +27,9 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
 
 ## Các phần cần làm tiếp, theo thứ tự đề xuất
 
-1. **Tài khoản:** đổi mật khẩu, quên mật khẩu và xác minh email; hiện API auth
-   chưa có các luồng này. Cần thiết kế thu hồi phiên cũ và dịch vụ gửi email.
+1. **Tài khoản:** quên mật khẩu và xác minh email cần luồng token dùng một lần
+   và dịch vụ gửi email; bổ sung giới hạn thử ở login/signup. Đổi mật khẩu và
+   thu hồi phiên cũ đã có, không thay thế luồng quên mật khẩu.
 2. **Hồ sơ cleaner:** tải giấy tờ/ảnh xác minh, lưu tệp riêng tư và quy trình
    staff kiểm tra hồ sơ. Hiện duyệt dựa trên thông tin văn bản.
 3. **Thông báo đẩy:** thông báo khi app không mở. Hiện inbox/polling hoạt động
@@ -55,15 +60,44 @@ cùng transaction. Có thể mở lại yêu cầu; đây chưa phải hệ th�
 Chưa có tệp đính kèm, hội thoại nhiều tin nhắn, phân công nhân viên hoặc SLA.
 Không có cơ chế tự thu/hoàn tiền hay sửa trạng thái đơn qua xử lý hỗ trợ.
 
-## Các repository cập nhật trong bước hỗ trợ
+## Đổi mật khẩu: phạm vi bản hiện tại
+
+`POST /api/auth/change-password` yêu cầu JWT, `currentPassword` và `newPassword`.
+Mật khẩu mới tối thiểu 12 ký tự, tối đa 72 byte UTF-8 để không bị BCrypt cắt
+ngầm; kiểm tra mật khẩu hiện tại, không cho dùng lại mật khẩu cũ. Hai endpoint
+bảo mật dùng chung giới hạn 8 lần thử/5 phút/tài khoản trên mỗi API instance,
+trả 429 và Retry-After.
+Giới hạn này chưa phải bộ hạn chế phân tán cho login/signup.
+
+Cập nhật hash, tăng TokenVersion, audit và thông báo cùng transaction; hai lần
+đổi đồng thời chỉ một lần được lưu. Audit không lưu mật khẩu hoặc hash. Sau
+thành công, kể cả phiên đang thao tác cũng phải đăng nhập lại. Sai mật khẩu
+hiện tại trả 400 và giữ phiên. JWT thiếu claim phiên bản chỉ được chấp nhận
+cho tài khoản TokenVersion=0; tương thích phiên cũ trước lần đổi đầu tiên.
+
+`POST /api/auth/logout-all` tăng TokenVersion, lưu audit và thông báo trong cùng
+transaction, không đổi hash mật khẩu. Chỉ tác động tài khoản của JWT hiện tại;
+hai yêu cầu đồng thời chỉ một lần được lưu. Không cần mật khẩu nên dùng được
+cho tài khoản Google. Không đăng xuất phiên tại Google hoặc chặn đăng nhập mới.
+
+Tài khoản chỉ đăng nhập Google (chưa có password hash) quản lý mật khẩu qua
+Google; luồng đổi mật khẩu không tự tạo mật khẩu riêng. Quên mật khẩu, xác minh
+email, danh sách thiết bị và thu hồi từng thiết bị chưa được triển khai.
+
+Hai provider có migration `AddTokenVersion`; startup API áp dụng migration.
+Cần cập nhật tất cả API instance để cùng kiểm tra phiên bản token. Các test
+chỉ chạy trên SQL tạm, không nâng cấp database ứng dụng. App export Android
+không thay thế kiểm thử đổi mật khẩu trên điện thoại thật.
+
+## Các repository cập nhật trong bước tài khoản
 
 `backend`, `admin`, `web`, `mobile`, `cleaner-web`, `cleaner-mobile`.
-Branch đề xuất: `booking-support`.
+Branch đề xuất: `account-security`.
 
 Commit text dùng cho từng repository:
 
 ```text
-Add booking support reports and staff resolution workflow
+Add password changes and session revocation controls
 ```
 
 Hai provider có migration `AddSupportTickets`. Startup API áp dụng migration

@@ -529,6 +529,11 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")

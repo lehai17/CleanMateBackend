@@ -99,6 +99,135 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     private const string Password = "CleanMate-test-123!";
 
     [Fact]
+    public async Task Logout_all_revokes_only_own_sessions_without_changing_password()
+    {
+        var account=await Register();var other=await Register();using var client=fixture.Client(account.Token);using var outsider=fixture.Client(other.Token);using var guest=fixture.Client();
+        Assert.Equal(HttpStatusCode.Unauthorized,(await guest.PostAsync("/api/auth/logout-all",null)).StatusCode);
+        var login=await (await guest.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=Password})).Content.ReadFromJsonAsync<JsonElement>();using var second=fixture.Client(login.GetProperty("token").GetString());
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/logout-all",new {userId=other.Id})).StatusCode);
+        foreach(var session in new[]{client,second})Assert.Equal(HttpStatusCode.Unauthorized,(await session.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await outsider.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await guest.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=Password})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user=(await db.Users.FindAsync(account.Id))!;Assert.Equal(1,user.TokenVersion);Assert.True(BCrypt.Net.BCrypt.Verify(Password,user.PasswordHash));
+        Assert.Equal(1,await db.AdminAudits.CountAsync(a=>a.ActorId==account.Id&&a.Action=="LogoutAll"));Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==$"LogoutAll:{account.Id}:1"));
+    }
+
+    [Fact]
+    public async Task Concurrent_logout_all_requests_revoke_once()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);
+        var responses=await Task.WhenAll(client.PostAsync("/api/auth/logout-all",null),client.PostAsync("/api/auth/logout-all",null));
+        Assert.Single(responses,r=>r.StatusCode==HttpStatusCode.OK);Assert.Single(responses,r=>r.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Conflict);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,(await db.Users.FindAsync(account.Id))!.TokenVersion);Assert.Equal(1,await db.AdminAudits.CountAsync(a=>a.ActorId==account.Id&&a.Action=="LogoutAll"));
+    }
+
+    [Fact]
+    public async Task Google_only_account_can_revoke_sessions_without_a_local_password()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);
+        using(var scope=fixture.Api.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var user=(await db.Users.FindAsync(account.Id))!;user.PasswordHash="";await db.SaveChangesAsync();}
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsync("/api/auth/logout-all",null)).StatusCode);Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/me")).StatusCode);
+        using var verification=fixture.Api.Services.CreateScope();var database=verification.ServiceProvider.GetRequiredService<AppDbContext>();var updated=(await database.Users.FindAsync(account.Id))!;
+        Assert.Equal("",updated.PasswordHash);Assert.Equal(1,updated.TokenVersion);
+    }
+
+    [Theory]
+    [InlineData("Customer")]
+    [InlineData("Cleaner")]
+    [InlineData("Staff")]
+    [InlineData("Admin")]
+    public async Task Password_change_revokes_every_old_session_and_requires_new_password(string role)
+    {
+        (string Token,int Id,string Email) account;
+        var oldPassword=role=="Staff"?"Staff-integration-password-123!":Password;
+        if(role=="Admin")
+        {
+            var email=Guid.NewGuid().ToString("N")+"@example.test";
+            using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await CleanMate.Api.Services.AdminBootstrap.CreateAsync(db,email,Password,"Password Admin");
+            using var guest=fixture.Client();var auth=await (await guest.PostAsJsonAsync("/api/auth/login",new {email,password=Password})).Content.ReadFromJsonAsync<JsonElement>();
+            account=(auth.GetProperty("token").GetString()!,auth.GetProperty("user").GetProperty("id").GetInt32(),email);
+        }
+        else account=role=="Staff"?await Staff():await Register(role);
+        using var client=fixture.Client(account.Token);using var visitor=fixture.Client();
+        Assert.Equal(role,(await client.GetFromJsonAsync<JsonElement>("/api/me")).GetProperty("role").GetString());
+        var auth2=await (await visitor.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=oldPassword})).Content.ReadFromJsonAsync<JsonElement>();
+        var token2=auth2.GetProperty("token").GetString()!;Assert.NotEqual(account.Token,token2);using var other=fixture.Client(token2);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword="incorrect password",newPassword="CleanMate-new-password-456!"})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=oldPassword,newPassword="CleanMate-new-password-456!"})).StatusCode);
+        foreach(var session in new[]{client,other})Assert.Equal(HttpStatusCode.Unauthorized,(await session.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,(await visitor.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=oldPassword})).StatusCode);
+        var fresh=await visitor.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password="CleanMate-new-password-456!"});Assert.Equal(HttpStatusCode.OK,fresh.StatusCode);
+        using var scope2=fixture.Api.Services.CreateScope();var database=scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,(await database.Users.FindAsync(account.Id))!.TokenVersion);
+        var audit=await database.AdminAudits.SingleAsync(a=>a.ActorId==account.Id&&a.Action=="ChangePassword");Assert.DoesNotContain(oldPassword,audit.Details);Assert.DoesNotContain("CleanMate-new-password-456!",audit.Details);
+        Assert.Equal(1,await database.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==$"PasswordChanged:{account.Id}:1"));
+    }
+
+    [Fact]
+    public async Task Password_validation_and_google_only_accounts_do_not_mutate_credentials()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);using var guest=fixture.Client();
+        Assert.Equal(HttpStatusCode.Unauthorized,(await guest.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="CleanMate-new-password-456!"})).StatusCode);
+        foreach(var next in new[]{Password,"short",new string('x',73),new string('ệ',25),new string(' ',12)})
+            Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword=next})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user=(await db.Users.FindAsync(account.Id))!;Assert.Equal(0,user.TokenVersion);user.PasswordHash="";await db.SaveChangesAsync();
+        var response=await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="CleanMate-new-password-456!"});Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);Assert.Contains("Google",await response.Content.ReadAsStringAsync());
+        Assert.False(await db.AdminAudits.AnyAsync(a=>a.ActorId==account.Id&&a.Action=="ChangePassword"));
+    }
+
+    [Fact]
+    public async Task Concurrent_password_changes_have_one_winner_and_one_audit()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);
+        var responses=await Task.WhenAll(client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="New-password-first-123!"}),client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="New-password-second-123!"}));
+        Assert.Single(responses,r=>r.StatusCode==HttpStatusCode.OK);Assert.Single(responses,r=>r.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Conflict);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,(await db.Users.FindAsync(account.Id))!.TokenVersion);Assert.Equal(1,await db.AdminAudits.CountAsync(a=>a.ActorId==account.Id&&a.Action=="ChangePassword"));
+    }
+
+    [Fact]
+    public async Task Password_changes_limit_attempts_per_account()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);
+        for(var i=0;i<8;i++)Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="short"})).StatusCode);
+        var limited=await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="New-password-test-123!"});Assert.Equal(HttpStatusCode.TooManyRequests,limited.StatusCode);Assert.True(limited.Headers.Contains("Retry-After"));
+        Assert.Equal(HttpStatusCode.TooManyRequests,(await client.PostAsync("/api/auth/logout-all",null)).StatusCode);
+        using var other=fixture.Client((await Register()).Token);Assert.Equal(HttpStatusCode.BadRequest,(await other.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="short"})).StatusCode);
+    }
+
+    [Fact]
+    public async Task Legacy_tokens_work_only_before_first_password_change_and_malformed_versions_fail()
+    {
+        var account=await Register();
+        string Token(string? version)
+        {
+            var claims=new List<System.Security.Claims.Claim>{new("sub",account.Id.ToString())};
+            if(version is not null)claims.Add(new("token_version",version));
+            var jwt=new System.IdentityModel.Tokens.Jwt.JwtSecurityToken("CleanMateTests","CleanMateTests",claims,expires:DateTime.UtcNow.AddHours(1),signingCredentials:new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("cleanmate-integration-tests-only-secret-at-least-32-bytes")),Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256));
+            return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(jwt);
+        }
+        using var legacy=fixture.Client(Token(null));Assert.Equal(HttpStatusCode.OK,(await legacy.GetAsync("/api/me")).StatusCode);
+        using var malformed=fixture.Client(Token("bad"));Assert.Equal(HttpStatusCode.Unauthorized,(await malformed.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await legacy.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword="New-legacy-password-123!"})).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,(await legacy.GetAsync("/api/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Password_change_accepts_full_72_byte_values_without_truncating_unicode()
+    {
+        var account=await Register();using var client=fixture.Client(account.Token);using var guest=fixture.Client();var next=new string('x',72);
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=Password,newPassword=next})).StatusCode);
+        var auth=await (await guest.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=next})).Content.ReadFromJsonAsync<JsonElement>();using var fresh=fixture.Client(auth.GetProperty("token").GetString());
+        Assert.Equal(HttpStatusCode.OK,(await fresh.PostAsJsonAsync("/api/auth/change-password",new {currentPassword=next,newPassword=new string('ệ',24)})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await guest.PostAsJsonAsync("/api/auth/login",new {email=account.Email,password=new string('ệ',24)})).StatusCode);
+    }
+
+    [Fact]
     public async Task Support_only_booking_parties_can_report_and_reports_are_private()
     {
         using var owner = fixture.Client((await Register()).Token);

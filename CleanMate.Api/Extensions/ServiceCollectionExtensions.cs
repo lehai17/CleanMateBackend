@@ -6,6 +6,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 namespace CleanMate.Api.Extensions;
 
@@ -27,6 +29,19 @@ public static class ServiceCollectionExtensions
         services.AddCleanMateDb(configuration);
         services.AddCleanMateCors(configuration);
         services.AddCleanMateAuth(configuration);
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = 429;
+            options.AddPolicy("password-change", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
+            options.OnRejected = async (context, cancellation) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter,out var retry))
+                    context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(retry.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                await context.HttpContext.Response.WriteAsJsonAsync(new { message = "Bạn đã thực hiện thao tác bảo mật quá nhiều lần. Vui lòng thử lại sau 5 phút." },cancellation);
+            };
+        });
         services.AddScoped<CurrentUserService>();
         services.AddScoped<AuthService>();
         services.AddSingleton<JwtTokenService>();
@@ -96,7 +111,10 @@ public static class ServiceCollectionExtensions
                         var users = context.HttpContext.RequestServices.GetRequiredService<CurrentUserService>();
                         var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
                         var id = users.GetCurrentUserId(context.Principal!);
-                        if (id is null || !await db.Users.AnyAsync(u => u.Id == id && u.IsActive))
+                        var claim = context.Principal!.FindFirst("token_version")?.Value;
+                        var version = 0;
+                        if ((claim is not null && (!int.TryParse(claim,out version) || version < 0)) ||
+                            id is null || !await db.Users.AnyAsync(u => u.Id == id && u.IsActive && u.TokenVersion == version))
                             context.Fail("Account is unavailable.");
                     }
                 };

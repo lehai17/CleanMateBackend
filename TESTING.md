@@ -1,11 +1,18 @@
 # Backend and system tests
 
-Verified on 16 October 2026: 93 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 25 frontend tests, 32 customer-web
-Playwright cases, 10 admin Playwright cases, 16 cleaner-web Playwright cases,
+Verified on 16 October 2026: 105 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 29 frontend tests, 36 customer-web
+Playwright cases, 14 admin Playwright cases, 20 cleaner-web Playwright cases,
 8 cleaner-web Node tests, 7 cleaner-mobile tests and 1 admin server integration test.
 
 From backend/:
+
+Password tests cover all four roles, old sessions, legacy JWT compatibility,
+malformed version claims, concurrent changes, unchanged credentials after invalid
+input, Google-only accounts, UTF-8 BCrypt boundaries and per-account attempt limits.
+Logout-all tests cover two old sessions, unchanged passwords, caller-only revocation,
+concurrent requests, Google-only accounts and the shared security attempt quota.
+The new AddTokenVersion migrations preserve existing accounts at version zero.
 
 See PROJECT_STATUS.md for feature scope, remaining work and the booking-support
 workflow. New SQL Server/PostgreSQL migrations add SupportTickets; no application

@@ -49,6 +49,7 @@ public class AppDbContext : DbContext
         b.Entity<Notification>().HasIndex(n => new { n.UserId, n.ReadAt });
         b.Entity<Notification>().Property(n => n.Target).HasMaxLength(32);
         b.Entity<User>().Property(u => u.IsActive).HasDefaultValue(true);
+        b.Entity<User>().Property(u => u.TokenVersion).HasDefaultValue(0);
         b.Entity<CleanerProfile>().Property(c => c.ReviewStatus).HasMaxLength(32).HasDefaultValue("Pending");
         b.Entity<CleanerProfile>().Property(c => c.ReviewReason).HasMaxLength(1000);
         b.Entity<CleanerProfile>().Property(c => c.SubmittedAt).HasConversion(utc);
