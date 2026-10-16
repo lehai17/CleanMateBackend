@@ -16,6 +16,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using CleanMate.Api.Services;
+using CleanMate.TestSupport;
 
 namespace CleanMate.Tests;
 
@@ -27,6 +29,7 @@ public sealed class ApiFixture : IAsyncLifetime
     public Uri ApiUrl => new(Api.Urls.Single());
     public Uri PortalUrl => new(Portal.Urls.Single());
     public string AdminToken { get; private set; } = "";
+    public FakeAccountEmail Mail { get; } = new();
 
     public async Task InitializeAsync()
     {
@@ -36,6 +39,7 @@ public sealed class ApiFixture : IAsyncLifetime
         sql.InitialCatalog = databaseName;
         Api = ApiApplication.Build([], builder =>
         {
+            builder.Services.AddSingleton<IAccountEmail>(Mail);
             builder.Configuration.Sources.Clear();
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -46,6 +50,8 @@ public sealed class ApiFixture : IAsyncLifetime
                 ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
                 ["RateLimits:Login:PermitLimit"] = "10000",
                 ["RateLimits:Registration:PermitLimit"] = "10000",
+                ["RateLimits:RecoveryRequest:PermitLimit"] = "10000",
+                ["RateLimits:RecoveryConsume:PermitLimit"] = "10000",
                 // Stale deployment settings must never reactivate online payments.
                 ["Payments:Momo:Enabled"] = "true", ["Payments:PayOs:Enabled"] = "true"
             });
@@ -285,7 +291,7 @@ public partial class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<Api
             builder.Configuration.Sources.Clear();
             builder.Configuration.AddInMemoryCollection(fixture.Api.Configuration.AsEnumerable());
             var settings=new Dictionary<string,string?>();
-            foreach(var name in new[]{"Login","Registration","Google"}){
+            foreach(var name in new[]{"Login","Registration","Google","RecoveryRequest","RecoveryConsume"}){
                 settings[$"RateLimits:{name}:PermitLimit"]=limit.ToString();settings[$"RateLimits:{name}:WindowSeconds"]=seconds.ToString();
             }
             if(!trustLoopback)settings["Proxy:KnownProxies:0"]="192.0.2.200";

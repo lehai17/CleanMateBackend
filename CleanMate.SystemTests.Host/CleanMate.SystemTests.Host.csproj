@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../TestSupport/FakeAccountEmail.cs" Link="TestSupport/FakeAccountEmail.cs" />
     <ProjectReference Include="../CleanMate.Api/CleanMate.Api.csproj" />
     <ProjectReference Include="../CleanMate.CleanerWeb/CleanMate.CleanerWeb.csproj" />
   </ItemGroup>

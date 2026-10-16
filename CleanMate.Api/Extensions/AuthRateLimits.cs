@@ -12,6 +12,8 @@ public static class AuthRateLimits
         Add("auth-login", "Login", 30, 300);
         Add("auth-register", "Registration", 10, 3600);
         Add("auth-google", "Google", 30, 300);
+        Add("auth-recovery-request", "RecoveryRequest", 10, 600);
+        Add("auth-recovery-consume", "RecoveryConsume", 30, 900);
 
         void Add(string policy, string section, int defaultLimit, int defaultWindow)
         {

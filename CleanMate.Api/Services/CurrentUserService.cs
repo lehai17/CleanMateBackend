@@ -58,7 +58,8 @@ public class CurrentUserService
             user.PhoneNumber,
             user.Address,
             user.Role == UserRole.Cleaner && user.CleanerProfile?.ReviewStatus == "Approved",
-            cleanerProfile);
+            cleanerProfile,
+            user.EmailVerifiedAt);
     }
 
     public string? NormalizeOptional(string? value)

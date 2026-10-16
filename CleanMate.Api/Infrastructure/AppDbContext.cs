@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<AdminAudit> AdminAudits => Set<AdminAudit>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+    public DbSet<AccountCode> AccountCodes => Set<AccountCode>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -51,6 +52,17 @@ public class AppDbContext : DbContext
         b.Entity<Notification>().Property(n => n.Target).HasMaxLength(32);
         b.Entity<User>().Property(u => u.IsActive).HasDefaultValue(true);
         b.Entity<User>().Property(u => u.TokenVersion).HasDefaultValue(0);
+        b.Entity<User>().Property(u => u.EmailVerifiedAt).HasConversion(utc);
+        b.Entity<AccountCode>().HasOne<User>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<AccountCode>().Property(c => c.Purpose).HasMaxLength(32);
+        b.Entity<AccountCode>().Property(c => c.Hash).HasMaxLength(64);
+        b.Entity<AccountCode>().HasIndex(c => c.Hash).IsUnique();
+        b.Entity<AccountCode>().HasIndex(c => new { c.UserId, c.Purpose, c.IssueWindow }).IsUnique();
+        b.Entity<AccountCode>().HasIndex(c => c.ExpiresAt);
+        b.Entity<AccountCode>().Property(c => c.CreatedAt).HasConversion(utc);
+        b.Entity<AccountCode>().Property(c => c.ExpiresAt).HasConversion(utc);
+        b.Entity<AccountCode>().Property(c => c.DeliveredAt).HasConversion(utc);
+        b.Entity<AccountCode>().Property(c => c.ConsumedAt).HasConversion(utc);
         b.Entity<CleanerProfile>().Property(c => c.ReviewStatus).HasMaxLength(32).HasDefaultValue("Pending");
         b.Entity<CleanerProfile>().Property(c => c.ReviewReason).HasMaxLength(1000);
         b.Entity<CleanerProfile>().Property(c => c.SubmittedAt).HasConversion(utc);

@@ -7,13 +7,18 @@ Authentication throttling and proxy/password-bound checks are documented in
 [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
 an isolated SQL database and low limits; functional suites use higher limits.
 
-Verified on 16 October 2026: 146 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 36 frontend tests, 44 customer-web
-Playwright cases, 26 admin Playwright cases, 24 cleaner-web Playwright cases,
+Verified on 16 October 2026: 171 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 38 frontend tests, 50 customer-web
+Playwright cases, 30 admin Playwright cases, 28 cleaner-web Playwright cases,
 9 cleaner-web Node tests, 7 cleaner-mobile tests and 5 admin Node tests.
 
 Customer mobile additionally passes 4 rebooking draft/privacy/limit tests (`npm test`)
-and exports its Android bundle (1367 modules). Rebooking API/browser checks and the
+and exports its Android bundle (1369 modules). Cleaner Android exports 1318 modules.
+Account recovery covers all roles, single-use/expired/undelivered codes, hashing,
+session revocation, uniform public responses, concurrent consumption, failed writes,
+delivery failure and per-IP attempt quotas. Tests inject an in-memory email sender;
+no external messages are sent. See [ACCOUNT_RECOVERY.md](ACCOUNT_RECOVERY.md).
+Rebooking API/browser checks and the
 concurrent-registration regression are documented in [REBOOKING.md](REBOOKING.md).
 
 Support assignment checks cover staff claim/release permissions, personal and

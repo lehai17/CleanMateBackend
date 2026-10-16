@@ -107,6 +107,58 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.AccountCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("IssueWindow")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("TokenVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Hash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Purpose", "IssueWindow")
+                        .IsUnique();
+
+                    b.ToTable("AccountCodes");
+                });
+
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.AdminAudit", b =>
                 {
                     b.Property<int>("Id")
@@ -559,6 +611,9 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<DateTime?>("EmailVerifiedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -606,6 +661,15 @@ namespace CleanMate.Api.Migrations.AppDbContextSqlServerMigrations
                     b.Navigation("Cleaner");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CleanMate.Api.Domain.Entities.AccountCode", b =>
+                {
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.AdminAudit", b =>

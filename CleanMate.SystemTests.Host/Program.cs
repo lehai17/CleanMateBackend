@@ -4,6 +4,8 @@ using CleanMate.CleanerWeb;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using CleanMate.Api.Services;
+using CleanMate.TestSupport;
 
 // This executable always creates its own database. It never reads application connection strings.
 var databaseName = "CleanMateSystemTests_" + Guid.NewGuid().ToString("N");
@@ -15,8 +17,10 @@ var webRoot = Path.GetFullPath(Environment.GetEnvironmentVariable("CLEANMATE_E2E
 if (!File.Exists(Path.Combine(webRoot, "index.html")))
     throw new InvalidOperationException("Run npm run build:e2e in web before starting the system-test host.");
 
+var mailbox = new FakeAccountEmail();
 var api = ApiApplication.Build([], builder =>
 {
+    builder.Services.AddSingleton<IAccountEmail>(mailbox);
     builder.Configuration.Sources.Clear();
     builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
@@ -27,7 +31,9 @@ var api = ApiApplication.Build([], builder =>
         ["Cors:AllowedOrigins:0"] = "http://127.0.0.1:13000",
         // Functional suites share one IP; dedicated integration tests exercise low quotas.
         ["RateLimits:Login:PermitLimit"] = "10000",
-        ["RateLimits:Registration:PermitLimit"] = "10000"
+        ["RateLimits:Registration:PermitLimit"] = "10000",
+        ["RateLimits:RecoveryRequest:PermitLimit"] = "10000",
+        ["RateLimits:RecoveryConsume:PermitLimit"] = "10000"
     });
     builder.WebHost.UseUrls("http://127.0.0.1:15238");
 });
@@ -50,6 +56,17 @@ using var files = new PhysicalFileProvider(webRoot);
 frontend.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
 frontend.UseStaticFiles(new StaticFileOptions { FileProvider = files });
 frontend.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = files });
+// This mailbox exists only in this throwaway test executable and is never mapped in the API.
+frontend.MapGet("/__system-tests/mail", async (string email, string purpose) => {
+    if (!(email.EndsWith("@example.test", StringComparison.Ordinal) || email.EndsWith("@system.test", StringComparison.Ordinal))) return Results.NotFound();
+    var mail = mailbox.Messages.LastOrDefault(m => m.Email == email && m.Purpose == purpose && m.Code is not null);
+    if (mail?.Code is null) return Results.NotFound();
+    using var scope = api.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var hash = AccountEmailWorker.Hash(mail.Code);
+    return await db.AccountCodes.AnyAsync(c => c.Hash == hash && c.DeliveredAt != null)
+        ? Results.Ok(new { mail.Code }) : Results.NotFound();
+});
 frontend.MapPost("/__system-tests/shutdown", (HttpContext context) =>
 {
     context.Response.OnCompleted(() =>

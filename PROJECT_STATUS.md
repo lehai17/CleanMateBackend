@@ -25,6 +25,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
   Xem [SUPPORT_ASSIGNMENT.md](SUPPORT_ASSIGNMENT.md).
 - Đổi mật khẩu cho khách, cleaner, Admin/Staff, có giới hạn thử; đổi thành công
   vô hiệu hóa các JWT cũ và yêu cầu đăng nhập lại. Có audit và thông báo cá nhân.
+- Khôi phục mật khẩu bằng mã email dùng một lần và xác minh email cho mọi role;
+  cần cấu hình/kiểm tra SMTP thật trước khi dùng trên môi trường phát hành.
+  Xem [ACCOUNT_RECOVERY.md](ACCOUNT_RECOVERY.md).
 - Đăng xuất tất cả thiết bị mà không đổi mật khẩu, có xác nhận trên giao diện;
   dùng được cả cho tài khoản Google và chỉ thu hồi các phiên CleanMate.
 - Hỗ trợ theo đơn: khách và cleaner được giao ca gửi báo cáo; staff phản hồi,
@@ -40,9 +43,8 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
 
 ## Các phần cần làm tiếp, theo thứ tự đề xuất
 
-1. **Tài khoản:** quên mật khẩu và xác minh email cần luồng token dùng một lần
-   và dịch vụ gửi email. Login/signup/Google đã có giới hạn theo IP; đổi mật khẩu
-   và thu hồi phiên cũ đã có, không thay thế luồng quên mật khẩu.
+1. **Tài khoản/email:** luồng quên mật khẩu/xác minh đã có; còn cấu hình SMTP,
+   xác nhận thư đến hộp thư thật và giám sát gửi thư. Chưa có outbox bền vững.
 2. **Hồ sơ cleaner:** tải giấy tờ/ảnh xác minh, lưu tệp riêng tư và quy trình
    staff kiểm tra hồ sơ. Hiện duyệt dựa trên thông tin văn bản.
 3. **Thông báo đẩy:** thông báo khi app không mở. Hiện inbox/polling hoạt động
@@ -98,8 +100,9 @@ hai yêu cầu đồng thời chỉ một lần được lưu. Không cần mậ
 cho tài khoản Google. Không đăng xuất phiên tại Google hoặc chặn đăng nhập mới.
 
 Tài khoản chỉ đăng nhập Google (chưa có password hash) quản lý mật khẩu qua
-Google; luồng đổi mật khẩu không tự tạo mật khẩu riêng. Quên mật khẩu, xác minh
-email, danh sách thiết bị và thu hồi từng thiết bị chưa được triển khai.
+Google; luồng đổi mật khẩu không tự tạo mật khẩu riêng. Quên mật khẩu và xác minh
+email đã có trong [ACCOUNT_RECOVERY.md](ACCOUNT_RECOVERY.md), cần cấu hình SMTP thật.
+Danh sách thiết bị và thu hồi từng thiết bị chưa được triển khai.
 
 Hai provider có migration `AddTokenVersion`; startup API áp dụng migration.
 Cần cập nhật tất cả API instance để cùng kiểm tra phiên bản token. Các test
