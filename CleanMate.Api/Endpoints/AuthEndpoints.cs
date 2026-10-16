@@ -62,13 +62,16 @@ public static class AuthEndpoints
 
         group.MapPost("/register", async (AppDbContext db, AuthService authService, RegisterDto dto) =>
         {
-            if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Email)
+            if (string.IsNullOrWhiteSpace(dto.FullName) || dto.FullName.Length > 200 || string.IsNullOrWhiteSpace(dto.Email) || dto.Email.Length > 254
                 || !System.Net.Mail.MailAddress.TryCreate(dto.Email.Trim(), out var address)
                 || address.Address != dto.Email.Trim() || string.IsNullOrWhiteSpace(dto.Password)
                 || dto.Password.Length < 8 || !Enum.IsDefined(dto.Role))
             {
                 return Results.BadRequest(new { message = "Vui lòng nhập họ tên, email hợp lệ và mật khẩu ít nhất 8 ký tự." });
             }
+
+            if (Encoding.UTF8.GetByteCount(dto.Password) > 72)
+                return Results.BadRequest(new { message = "Mật khẩu quá dài. Vui lòng dùng tối đa 72 byte UTF-8 (ký tự có dấu có thể chiếm nhiều byte)." });
 
             var email = dto.Email.Trim().ToLowerInvariant();
             if (await authService.EmailExistsAsync(db, email))
@@ -78,17 +81,17 @@ public static class AuthEndpoints
 
             var result = await authService.RegisterAsync(db, dto);
             return Results.Ok(result);
-        });
+        }).RequireRateLimiting("auth-register");
 
         group.MapPost("/login", async (AppDbContext db, AuthService authService, LoginDto dto) =>
         {
             var result = await authService.LoginAsync(db, dto);
             return result is null ? Results.Unauthorized() : Results.Ok(result);
-        });
+        }).RequireRateLimiting("auth-login");
 
         group.MapPost("/google", async (AppDbContext db, AuthService authService, GoogleLoginDto dto) =>
         {
-            if (string.IsNullOrWhiteSpace(dto.IdToken))
+            if (string.IsNullOrWhiteSpace(dto.IdToken) || dto.IdToken.Length > 16384)
             {
                 return Results.BadRequest("Missing idToken");
             }
@@ -97,7 +100,7 @@ public static class AuthEndpoints
             return result is null
                 ? Results.BadRequest("Invalid Google token")
                 : Results.Ok(result);
-        });
+        }).RequireRateLimiting("auth-google");
 
         return app;
     }

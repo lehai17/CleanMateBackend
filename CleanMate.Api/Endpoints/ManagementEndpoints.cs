@@ -145,8 +145,8 @@ public static class ManagementEndpoints
             if (actor.Role != UserRole.Admin) return Results.Forbid();
             if (string.IsNullOrWhiteSpace(dto.FullName) || dto.FullName.Trim().Length > 200 ||
                 dto.Email?.Length > 254 || !MailAddress.TryCreate(dto.Email?.Trim(), out var email) || email.Address != dto.Email?.Trim() ||
-                string.IsNullOrEmpty(dto.Password) || dto.Password.Length is < 12 or > 128)
-                return Results.BadRequest(new { message = "Nhập họ tên, email hợp lệ và mật khẩu từ 12 đến 128 ký tự." });
+                string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 12 || System.Text.Encoding.UTF8.GetByteCount(dto.Password) > 72)
+                return Results.BadRequest(new { message = "Nhập họ tên, email hợp lệ và mật khẩu ít nhất 12 ký tự, tối đa 72 byte UTF-8." });
             var normalized = email.Address.ToLowerInvariant();
             if (await db.Users.AnyAsync(u => u.Email == normalized)) return Results.Conflict(new { message = "Email đã được sử dụng." });
             var user = new User { FullName = dto.FullName.Trim(), Email = normalized, Role = UserRole.Staff, PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password) };

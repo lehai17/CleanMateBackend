@@ -13,6 +13,7 @@ public static class WebApplicationExtensions
             app.UseSwaggerUI();
         }
 
+        app.UseForwardedHeaders();
         app.UseRouting();
         app.UseCors(ServiceCollectionExtensions.CorsPolicy);
         app.UseAuthentication();

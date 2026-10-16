@@ -1,9 +1,13 @@
 # Backend and system tests
 
-Verified on 16 October 2026: 105 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 29 frontend tests, 36 customer-web
-Playwright cases, 14 admin Playwright cases, 20 cleaner-web Playwright cases,
-8 cleaner-web Node tests, 7 cleaner-mobile tests and 1 admin server integration test.
+Authentication throttling and proxy/password-bound checks are documented in
+[AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
+an isolated SQL database and low limits; functional suites use higher limits.
+
+Verified on 16 October 2026: 112 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 29 frontend tests, 38 customer-web
+Playwright cases, 16 admin Playwright cases, 22 cleaner-web Playwright cases,
+9 cleaner-web Node tests, 7 cleaner-mobile tests and 2 admin server integration test.
 
 From backend/:
 

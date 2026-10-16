@@ -44,6 +44,8 @@ public sealed class ApiFixture : IAsyncLifetime
                 ["Jwt:Issuer"] = "CleanMateTests",
                 ["Jwt:Audience"] = "CleanMateTests",
                 ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
+                ["RateLimits:Login:PermitLimit"] = "10000",
+                ["RateLimits:Registration:PermitLimit"] = "10000",
                 // Stale deployment settings must never reactivate online payments.
                 ["Payments:Momo:Enabled"] = "true", ["Payments:PayOs:Enabled"] = "true"
             });
@@ -97,6 +99,91 @@ public sealed class ApiFixture : IAsyncLifetime
 public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private const string Password = "CleanMate-test-123!";
+
+    private async Task<WebApplication> LimitedAuthHost(int limit=2,int seconds=300,bool trustLoopback=true)
+    {
+        var host=ApiApplication.Build([],builder=>{
+            builder.Configuration.Sources.Clear();
+            builder.Configuration.AddInMemoryCollection(fixture.Api.Configuration.AsEnumerable());
+            var settings=new Dictionary<string,string?>();
+            foreach(var name in new[]{"Login","Registration","Google"}){
+                settings[$"RateLimits:{name}:PermitLimit"]=limit.ToString();settings[$"RateLimits:{name}:WindowSeconds"]=seconds.ToString();
+            }
+            if(!trustLoopback)settings["Proxy:KnownProxies:0"]="192.0.2.200";
+            builder.Configuration.AddInMemoryCollection(settings);builder.Logging.ClearProviders();builder.WebHost.UseUrls("http://127.0.0.1:0");
+        });
+        await host.StartAsync();return host;
+    }
+
+    [Theory]
+    [InlineData("login",HttpStatusCode.Unauthorized)]
+    [InlineData("register",HttpStatusCode.BadRequest)]
+    [InlineData("google",HttpStatusCode.BadRequest)]
+    public async Task Public_auth_quotas_are_independent_per_endpoint_and_client_ip(string endpoint,HttpStatusCode initial)
+    {
+        await using var host=await LimitedAuthHost();using var client=new HttpClient{BaseAddress=new Uri(host.Urls.Single())};
+        client.DefaultRequestHeaders.Add("X-Forwarded-For","198.51.100.21");
+        object Input()=>endpoint switch {"register"=>new{fullName="",email=Guid.NewGuid()+"@example.test",password=Password},"google"=>new{idToken=""},_=>new{email=Guid.NewGuid()+"@example.test",password=Password}};
+        for(var i=0;i<2;i++)Assert.Equal(initial,(await client.PostAsJsonAsync($"/api/auth/{endpoint}",Input())).StatusCode);
+        var limited=await client.PostAsJsonAsync($"/api/auth/{endpoint}",Input());Assert.Equal(HttpStatusCode.TooManyRequests,limited.StatusCode);
+        var body=await limited.Content.ReadFromJsonAsync<JsonElement>();var retry=body.GetProperty("retryAfterSeconds").GetInt32();Assert.InRange(retry,1,300);Assert.Equal(retry.ToString(),limited.Headers.GetValues("Retry-After").Single());Assert.DoesNotContain(Password,body.ToString());
+        var otherEndpoint=endpoint=="login"?"register":"login";
+        Assert.NotEqual(HttpStatusCode.TooManyRequests,(await client.PostAsJsonAsync($"/api/auth/{otherEndpoint}",new{fullName="",email="",password=""})).StatusCode);
+        client.DefaultRequestHeaders.Remove("X-Forwarded-For");client.DefaultRequestHeaders.Add("X-Forwarded-For","198.51.100.22");
+        Assert.Equal(initial,(await client.PostAsJsonAsync($"/api/auth/{endpoint}",Input())).StatusCode);
+        using var authorized=new HttpClient{BaseAddress=client.BaseAddress};authorized.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",fixture.AdminToken);
+        Assert.Equal(HttpStatusCode.OK,(await authorized.GetAsync("/api/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Untrusted_forwarding_headers_cannot_bypass_auth_limits()
+    {
+        await using var host=await LimitedAuthHost(trustLoopback:false);using var client=new HttpClient{BaseAddress=new Uri(host.Urls.Single())};
+        for(var i=0;i<3;i++){
+            client.DefaultRequestHeaders.Remove("X-Forwarded-For");client.DefaultRequestHeaders.Add("X-Forwarded-For",$"198.51.100.{i+1}");
+            var response=await client.PostAsJsonAsync("/api/auth/login",new{email="not-an-account@example.test",password=Password});
+            Assert.Equal(i<2?HttpStatusCode.Unauthorized:HttpStatusCode.TooManyRequests,response.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Auth_quota_expires_without_locking_or_changing_the_account()
+    {
+        var account=await Register();await using var host=await LimitedAuthHost(1,1);using var client=new HttpClient{BaseAddress=new Uri(host.Urls.Single())};
+        Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/auth/login",new{email=account.Email,password="incorrect password"})).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests,(await client.PostAsJsonAsync("/api/auth/login",new{email=account.Email,password=Password})).StatusCode);
+        await Task.Delay(2200);
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/login",new{email=account.Email,password=Password})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var user=(await db.Users.FindAsync(account.Id))!;Assert.True(user.IsActive);Assert.Equal(0,user.TokenVersion);
+    }
+
+    [Fact]
+    public async Task Registration_rejects_overlong_passwords_and_accepts_72_utf8_bytes()
+    {
+        using var client=fixture.Client();
+        foreach(var password in new[]{new string('x',73),new string('ệ',25)}){
+            var email=Guid.NewGuid()+"@example.test";
+            var result=await client.PostAsJsonAsync("/api/auth/register",new{fullName="Password Test",email,password});Assert.Equal(HttpStatusCode.BadRequest,result.StatusCode);
+            using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();Assert.False(await db.Users.AnyAsync(u=>u.Email==email));
+        }
+        var validEmail=Guid.NewGuid()+"@example.test";var valid=new string('ệ',24);
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/register",new{fullName="Password Test",email=validEmail,password=valid})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/auth/login",new{email=validEmail,password=valid})).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/auth/login",new{email=validEmail,password=new string('x',129)})).StatusCode);
+    }
+
+    [Fact]
+    public async Task Staff_and_admin_creation_reject_unrepresentable_bcrypt_passwords()
+    {
+        using var admin=fixture.Client(fixture.AdminToken);
+        foreach(var password in new[]{new string('x',73),new string('ệ',25)}){
+            var email=Guid.NewGuid()+"@example.test";
+            Assert.Equal(HttpStatusCode.BadRequest,(await admin.PostAsJsonAsync("/api/management/staff",new{fullName="Password Staff",email,password})).StatusCode);
+            using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await Assert.ThrowsAsync<InvalidOperationException>(()=>CleanMate.Api.Services.AdminBootstrap.CreateAsync(db,email,password,"Password Admin"));
+            Assert.False(await db.Users.AnyAsync(u=>u.Email==email));
+        }
+    }
 
     [Fact]
     public async Task Logout_all_revokes_only_own_sessions_without_changing_password()

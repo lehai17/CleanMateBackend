@@ -5,6 +5,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 
 ## Đã có
 
+- Giới hạn đăng nhập/đăng ký/Google theo IP, trả thời gian chờ rõ ràng;
+  mật khẩu mới được kiểm tra giới hạn byte. Xem [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md).
+
 - Web/app khách: đặt đơn với giá từ server, liên hệ, đổi/hủy lịch khi chưa được
   nhận, theo dõi ca, xác nhận hoàn thành và đánh giá.
 - Web/app cleaner riêng: đăng ký/chờ duyệt, nhận ca, chống trùng lịch, bắt đầu/
@@ -28,8 +31,8 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
 ## Các phần cần làm tiếp, theo thứ tự đề xuất
 
 1. **Tài khoản:** quên mật khẩu và xác minh email cần luồng token dùng một lần
-   và dịch vụ gửi email; bổ sung giới hạn thử ở login/signup. Đổi mật khẩu và
-   thu hồi phiên cũ đã có, không thay thế luồng quên mật khẩu.
+   và dịch vụ gửi email. Login/signup/Google đã có giới hạn theo IP; đổi mật khẩu
+   và thu hồi phiên cũ đã có, không thay thế luồng quên mật khẩu.
 2. **Hồ sơ cleaner:** tải giấy tờ/ảnh xác minh, lưu tệp riêng tư và quy trình
    staff kiểm tra hồ sơ. Hiện duyệt dựa trên thông tin văn bản.
 3. **Thông báo đẩy:** thông báo khi app không mở. Hiện inbox/polling hoạt động
