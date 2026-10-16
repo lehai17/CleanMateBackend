@@ -111,19 +111,37 @@ mobile/.expo/validation-audit.json (ignored). Next batch should apply compatible
 dependency fixes and retest before native APK validation; do not use force/major
 upgrades without checking compatibility. No APK/emulator UI run has happened yet.
 
-Next priority found during review: stale 401/profile responses can clear or
-overwrite a newer web/native login; customer web/native restore also discards
-credentials on network failures. Add guarded session restoration and retry UI
-after publishing this batch. Preserve language/theme preferences on logout.
+The stale-session and network-restore issues above are resolved in batch 5.
 
 Next priorities after this batch: private cleaner verification documents/review,
 incident evidence/operational safeguards, push readiness, legacy role cleanup,
 deployment/device validation preparations. Reassess source and tests each batch.
 
 User reiterated unattended work and explicitly added Vietnamese/English language
-selection and light/dark appearance across web/apps on 2026-10-16. Implement this
-as the next batch after finishing/testing/publishing account recovery; preserve
-unfinished work and avoid interleaving untested branches. Existing goal state was
+selection and light/dark appearance across web/apps on 2026-10-16. These shipped
+in language-theme; preserve unfinished work and avoid interleaving untested
+branches. Existing goal state was
 reported usageLimited at 13:13 UTC; user has explicitly requested continued work.
 
 No subagents: current developer instructions prohibit unsolicited delegation.
+
+## Batch 6: dependency-hardening
+
+All six repositories on dependency-hardening. Session-restoration is already
+published and remote main verified. Fixed uncompiled customer web Tailwind CSS,
+added responsive navigation, minimized runtime manifest and applied compatible
+npm fixes. Native SDK versions aligned; critical npm advisories now zero.
+Removed obsolete ASP.NET Session package and updated xUnit v2; NuGet scan now
+reports zero vulnerable packages. See DEPENDENCY_HARDENING.md for unresolved
+build/native findings. Backend build zero warnings, 189 integration tests pass;
+48 React tests and native logic/provider tests pass. Android exports pass at
+1376/1331 modules. Final browser suites pass 64/46/36 (146 total), zero failures/skips/flaky; all
+temporary database cleanup markers verified. Final 48 React tests pass. iOS
+exports pass 1369/1332 modules. Removed runtime Tailwind CDN dependency and
+verified actual grid/flex styles and mobile navigation at 320/768/1024px.
+Ready to publish. No APK/device validation yet.
+
+Next: public footer has dead service buttons and placeholder contact details;
+policy tab query changes are not synchronized with displayed state. Fix public
+navigation, then prepare native build/device validation. Android acceleration
+works (WHPX), SDK 35/36 images exist, but avdmanager is not installed.

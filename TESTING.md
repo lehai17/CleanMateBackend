@@ -7,15 +7,17 @@ Authentication throttling and proxy/password-bound checks are documented in
 [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
 an isolated SQL database and low limits; functional suites use higher limits.
 
-Verified on 16 October 2026: 189 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 48 frontend tests, 60 customer-web
+Verified on 17 October 2026: 189 backend tests passed; build completed with zero
+warnings/errors. The companion suites passed 48 frontend tests, 64 customer-web
 Playwright cases, 46 admin Playwright cases, 36 cleaner-web Playwright cases,
 14 cleaner-web Node tests, 15 cleaner-mobile tests and 10 admin Node tests.
 
 Customer mobile passes 12 rebooking/preferences/session tests (`npm test`)
-and exports its Android bundle (1373 modules). Cleaner Android exports 1328 modules.
+and exports its Android bundle (1376 modules). Cleaner Android exports 1331 modules.
 The workspace native-session harness passes 12 additional checks against the
 actual auth providers using platform fakes. See SESSION_RESTORATION.md.
+iOS bundle exports pass at 1369/1332 modules (customer/cleaner). Dependency audit
+scope, remaining advisories and responsive CSS checks: DEPENDENCY_HARDENING.md.
 Language/appearance coverage is documented in [UI_PREFERENCES.md](UI_PREFERENCES.md).
 Staff lock/unlock now permanently revokes old sessions; see
 [STAFF_SESSION_REVOCATION.md](STAFF_SESSION_REVOCATION.md) for regression coverage.
