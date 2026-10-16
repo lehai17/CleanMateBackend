@@ -710,7 +710,7 @@ public partial class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<Api
         Assert.DoesNotContain("Staff-integration-password-123!", audit);
         Assert.DoesNotContain("PasswordHash", audit);
         Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/management/staff/{account.Id}/access", new { isActive = true, expectedActive = false })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync("/api/management/dashboard")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await staff.GetAsync("/api/management/dashboard")).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PutAsJsonAsync($"/api/management/staff/{account.Id}/access", new { isActive = false, expectedActive = false })).StatusCode);
     }
 

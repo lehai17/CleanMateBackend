@@ -168,11 +168,16 @@ public static class ManagementEndpoints
         {
             var actor = Actor(context);
             if (actor.Role != UserRole.Admin) return Results.Forbid();
+            if (dto.IsActive == dto.ExpectedActive)
+                return await db.Users.AnyAsync(u => u.Id == id && u.Role == UserRole.Staff && u.IsActive == dto.ExpectedActive)
+                    ? Results.Ok(new { id, dto.IsActive })
+                    : Results.Conflict(new { message = "Tài khoản không còn khớp trạng thái. Vui lòng tải lại." });
             await using var transaction = await db.Database.BeginTransactionAsync();
             var count = await db.Users.Where(u => u.Id == id && u.Role == UserRole.Staff && u.IsActive == dto.ExpectedActive)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.IsActive, dto.IsActive));
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.IsActive, dto.IsActive)
+                    .SetProperty(u => u.TokenVersion, u => u.TokenVersion + 1));
             if (count != 1) return Results.Conflict(new { message = "Tài khoản không còn khớp trạng thái. Vui lòng tải lại." });
-            Audit(db, actor, "StaffAccess", $"User:{id}", new { dto.IsActive });
+            Audit(db, actor, "StaffAccess", $"User:{id}", new { dto.IsActive, sessionsRevoked = true });
             await db.SaveChangesAsync(); await transaction.CommitAsync();
             return Results.Ok(new { id, dto.IsActive });
         });
