@@ -82,6 +82,35 @@ tests; build zero warnings/errors. Private account responses use no-store.
 Admin browser cleanup marker verified. Ready to publish backend/admin only.
 See ACCOUNT_MODERATION.md. No production accounts modified during tests.
 
+Account-moderation is published/merged to backend/admin main; remote SHAs verified.
+
+## Batch 5: session-restoration
+
+Branches across all six repos. Preserve credentials through temporary restore
+failures and show retry/explicit account-switch UI. Guard old /me/401 results and
+old screen callbacks; serialize native secure storage mutations. Customer web
+synchronizes cross-tab identity and binds requests to the validated token. Portal
+adapters reject obsolete-token responses. Shared language catalog now 913 phrases.
+No backend API/schema change. Final browser runs passed web 60, admin 46 and
+cleaner 36 (142 total), zero failures/flaky/skipped; cleanup markers verified.
+48 React tests pass; customer/cleaner logic suites 12/15 and portal Node 10/14.
+Workspace harness passes 12 tests against the actual native auth providers.
+Native exports (1373/1328 modules) and undefined-variable/hooks lint pass.
+Found forced-light native app config during review; changed to automatic and
+installed SDK-compatible expo-system-ui 6.0.9. Native config introspection verified
+Android automatic style and iOS UIUserInterfaceStyle=Automatic for both apps.
+Ready to publish all six repositories. See SESSION_RESTORATION.md.
+
+Local Android SDK, Java 17 and two emulator AVD configurations exist. No native
+APK/device UI validation has run yet; consider isolated emulator validation after
+publishing this batch. Never use a physical device or the real application DB.
+
+Dependency audit during native module installation reports 59 advisories (2
+critical: shell-quote and tar, both transitive, fixes available). The report is in
+mobile/.expo/validation-audit.json (ignored). Next batch should apply compatible
+dependency fixes and retest before native APK validation; do not use force/major
+upgrades without checking compatibility. No APK/emulator UI run has happened yet.
+
 Next priority found during review: stale 401/profile responses can clear or
 overwrite a newer web/native login; customer web/native restore also discards
 credentials on network failures. Add guarded session restoration and retry UI

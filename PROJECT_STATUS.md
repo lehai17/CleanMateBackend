@@ -7,6 +7,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
 
 - Chọn tiếng Việt/Anh và Sáng/Tối/Theo thiết bị trên cả năm client, lưu lựa chọn
   trên thiết bị và giữ nội dung đang nhập. Xem [UI_PREFERENCES.md](UI_PREFERENCES.md).
+- Khôi phục phiên có thử lại khi mất mạng; phản hồi/callback cũ không xóa hay ghi
+  đè đăng nhập mới, có đồng bộ tài khoản giữa tab web khách và bảo vệ ghi bộ nhớ
+  app. Xem [SESSION_RESTORATION.md](SESSION_RESTORATION.md).
 
 - Giới hạn đăng nhập/đăng ký/Google theo IP, trả thời gian chờ rõ ràng;
   mật khẩu mới được kiểm tra giới hạn byte. Xem [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md).
