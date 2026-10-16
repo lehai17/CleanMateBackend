@@ -7,10 +7,17 @@ Authentication throttling and proxy/password-bound checks are documented in
 [AUTH_RATE_LIMITS.md](AUTH_RATE_LIMITS.md). Dedicated quota tests use real HTTP,
 an isolated SQL database and low limits; functional suites use higher limits.
 
-Verified on 16 October 2026: 130 backend tests passed; build completed with zero
+Verified on 16 October 2026: 135 backend tests passed; build completed with zero
 warnings/errors. The companion suites passed 31 frontend tests, 40 customer-web
-Playwright cases, 22 admin Playwright cases, 24 cleaner-web Playwright cases,
+Playwright cases, 26 admin Playwright cases, 24 cleaner-web Playwright cases,
 9 cleaner-web Node tests, 7 cleaner-mobile tests and 5 admin Node tests.
+
+Support assignment checks cover staff claim/release permissions, personal and
+unassigned queues, concurrent claims, stale message/assignment versions, Admin
+reassignment, disabled targets, unchanged-assignment deduplication, private
+notification targets and rollback of assignment/version/audit on notification
+failure. Admin browser tests cover claim/release queues, stale forms and opening
+an assigned report from the staff inbox. See [SUPPORT_ASSIGNMENT.md](SUPPORT_ASSIGNMENT.md).
 
 From backend/:
 

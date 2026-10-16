@@ -12,6 +12,9 @@ public class SupportTicket
     public string Response { get; set; } = "";
     public int Version { get; set; } = 1;
     public int? RespondedById { get; set; }
+    public int? AssignedToId { get; set; }
+    public DateTime? AssignedAt { get; set; }
+    public User? AssignedTo { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public User? Reporter { get; set; }

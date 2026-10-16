@@ -73,11 +73,15 @@ public static class SupportEndpoints
     public static void MapManagementSupport(RouteGroupBuilder group)
     {
         group.MapConversation(management:true);
-        group.MapGet("/support", async (AppDbContext db, string? status, string? search, int? page) =>
+        SupportAssignmentEndpoints.Map(group);
+        group.MapGet("/support", async (AppDbContext db, HttpContext context, string? status, string? search, string? assignment, int? page) =>
         {
             var number = page ?? 1;
-            if (!ValidStatus(status) || search?.Length > 100 || number is < 1 or > 100000) return Results.BadRequest();
+            if (!ValidStatus(status) || search?.Length > 100 || number is < 1 or > 100000 || assignment is not (null or "All" or "Mine" or "Unassigned")) return Results.BadRequest();
+            var actor = (User)context.Items["Manager"]!;
             var query = db.SupportTickets.AsNoTracking().AsQueryable();
+            if (assignment == "Mine") query = query.Where(t => t.AssignedToId == actor.Id);
+            if (assignment == "Unassigned") query = query.Where(t => t.AssignedToId == null);
             if (status is not (null or "All")) query = query.Where(t => t.Status == status);
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -88,8 +92,10 @@ public static class SupportEndpoints
             }
             return Results.Ok(new { items = await query.OrderByDescending(t => t.UpdatedAt).ThenByDescending(t => t.Id).Skip((number-1)*20).Take(20)
                 .Select(t => new { t.Id,t.BookingId,t.Category,t.Description,t.Status,t.Response,t.Version,t.CreatedAt,t.UpdatedAt,
+                    t.AssignedToId,t.AssignedAt,assignedToName=t.AssignedTo == null ? null : t.AssignedTo.FullName,
+                    assignedToActive=t.AssignedTo != null && t.AssignedTo.IsActive,
                     reporterName = t.Reporter!.FullName, reporterEmail = t.Reporter.Email }).ToListAsync(),
-                total = await query.CountAsync(), page = number, pageSize = 20 });
+                total = await query.CountAsync(), page = number, pageSize = 20, actorId = actor.Id, canAssign = actor.Role == UserRole.Admin });
         });
         group.MapPut("/support/{id:int}", async (int id, RespondDto dto, AppDbContext db, HttpContext context) =>
         {

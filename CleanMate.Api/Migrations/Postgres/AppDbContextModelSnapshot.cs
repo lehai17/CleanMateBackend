@@ -475,6 +475,12 @@ namespace CleanMate.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("AssignedToId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("BookingId")
                         .HasColumnType("integer");
 
@@ -526,6 +532,8 @@ namespace CleanMate.Api.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status", "Id");
+
+                    b.HasIndex("AssignedToId", "Status", "Id");
 
                     b.ToTable("SupportTickets");
                 });
@@ -661,6 +669,11 @@ namespace CleanMate.Api.Migrations
 
             modelBuilder.Entity("CleanMate.Api.Domain.Entities.SupportTicket", b =>
                 {
+                    b.HasOne("CleanMate.Api.Domain.Entities.User", "AssignedTo")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Booking", null)
                         .WithMany()
                         .HasForeignKey("BookingId")
@@ -677,6 +690,8 @@ namespace CleanMate.Api.Migrations
                         .WithMany()
                         .HasForeignKey("RespondedById")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedTo");
 
                     b.Navigation("Reporter");
                 });
