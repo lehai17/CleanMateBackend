@@ -1,7 +1,7 @@
 # Backend and system tests
 
-Verified on 15 October 2026: 76 backend tests passed; build completed with zero
-warnings/errors. The companion suite passed 18 frontend and 24 Playwright cases.
+Verified on 16 October 2026: 82 backend tests passed; build completed with zero
+warnings/errors. The companion suite passed 21 frontend and 28 Playwright cases.
 
 From backend/:
 
@@ -167,3 +167,35 @@ Creation request IDs/hashes are retained. Replaying the original creation reques
 returns the same booking with its current schedule. This feature adds no schema
 migration. SQL Server integration tests cover ownership, UTC offsets, tampered
 fields, invalid dates, lifecycle restrictions and concurrent edit/claim/cancel.
+
+## In-app notifications
+
+AddNotifications (SQL Server) and AddNotificationsPostgres create a recipient-
+scoped Notifications table with UTC timestamps, booking/recipient foreign keys,
+unread/history indexes and a unique (UserId, EventKey). No historical events are
+backfilled. Deploy this migration before the new API: writes now include event
+notifications in the same database transaction as the booking/payment change.
+
+Customers receive booking creation, assignment, start, completion, changed time,
+cancellation and cleaner-declared cash receipt. Cleaners receive assignment and
+customer feedback. Cash messages explicitly describe a cleaner declaration.
+Creation/cash/feedback/cancellation retries do not duplicate notifications; a
+no-op reschedule emits none. The current cleaner portal's API actions generate
+the same notifications, available in the React/native inboxes.
+
+Authenticated endpoints:
+
+- GET /api/notifications?beforeId=<id>: newest first, 20 items, nextBeforeId and
+  total unreadCount. The cursor is optional; no other user's records are returned.
+- GET /api/notifications/unread-count: current recipient's unread count.
+- PUT /api/notifications/{id}/read: preserves the first ReadAt on repeat calls;
+  missing/other recipients' IDs return 404.
+- PUT /api/notifications/read-all with { throughId }: reads only the recipient's
+  rows up to that viewed ID, leaving newer arrivals unread.
+
+Integration tests cover recipients, lifecycle delivery, concurrency, replay
+deduplication, UTC/read timestamps, paging, bulk-read boundaries and rollback
+when a notification insert is deliberately rejected in the isolated test DB.
+PostgreSQL model/schema checks remain separate from a live PostgreSQL execution.
+There are no email, SMS, device push, browser permission or external delivery
+services in this feature.

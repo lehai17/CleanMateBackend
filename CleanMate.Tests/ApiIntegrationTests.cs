@@ -144,6 +144,141 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
+    public async Task Notifications_follow_booking_lifecycle_and_cash_feedback_retries_do_not_duplicate_them()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        foreach (var action in new[] { "accept", "start", "complete" })
+            Assert.Equal(HttpStatusCode.OK, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/{action}", null)).StatusCode);
+        var cash = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => cleaner.PutAsync($"/api/cleaner/jobs/{id}/cash-payment", null)));
+        Assert.All(cash, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        for (var i = 0; i < 2; i++)
+            Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync($"/api/orders/{id}/confirm-completion", new { rating = 5, review = "Good" })).StatusCode);
+        var inbox = await customer.GetFromJsonAsync<JsonElement>("/api/notifications");
+        var items = inbox.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(5, items.Length);
+        Assert.Equal(5, inbox.GetProperty("unreadCount").GetInt32());
+        Assert.Contains(items, n => n.GetProperty("title").GetString() == "Cleaner xác nhận đã nhận tiền mặt");
+        Assert.All(items, n => {
+            Assert.Equal(id, n.GetProperty("bookingId").GetInt32());
+            Assert.Equal("Orders", n.GetProperty("target").GetString());
+            Assert.EndsWith("Z", n.GetProperty("createdAt").GetString());
+            Assert.Equal(JsonValueKind.Null, n.GetProperty("readAt").ValueKind);
+        });
+        var cleanerInbox = await cleaner.GetFromJsonAsync<JsonElement>("/api/notifications");
+        var cleanerItems = cleanerInbox.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(2, cleanerItems.Length);
+        Assert.All(cleanerItems, n => Assert.Equal("CleanerJobs", n.GetProperty("target").GetString()));
+        Assert.Contains(cleanerItems, n => n.GetProperty("title").GetString() == "Khách đã đánh giá ca làm");
+        Assert.Equal(5, (await customer.GetFromJsonAsync<JsonElement>("/api/notifications/unread-count")).GetProperty("unreadCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task Notification_reads_are_owner_scoped_and_preserve_the_original_read_timestamp()
+    {
+        using var owner = fixture.Client((await Register()).Token);
+        using var stranger = fixture.Client((await Register()).Token);
+        using var guest = fixture.Client();
+        var booking = await Create(owner);
+        await owner.PutAsync($"/api/orders/{booking}/cancel", null);
+        await Create(stranger);
+        var inbox = await owner.GetFromJsonAsync<JsonElement>("/api/notifications");
+        var id = inbox.GetProperty("items")[0].GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.GetAsync("/api/notifications")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.PutAsync($"/api/notifications/{id}/read", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.PutAsync($"/api/notifications/{id}/read", null)).StatusCode);
+        var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => owner.PutAsync($"/api/notifications/{id}/read", null)));
+        var timestamps = new List<string>();
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var saved = await response.Content.ReadFromJsonAsync<JsonElement>();
+            timestamps.Add(saved.GetProperty("readAt").GetString()!);
+            Assert.Equal(1, saved.GetProperty("unreadCount").GetInt32());
+        }
+        Assert.Single(timestamps.Distinct());
+        Assert.EndsWith("Z", timestamps[0]);
+        var otherInbox = await stranger.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.Equal(1, otherInbox.GetProperty("unreadCount").GetInt32());
+        Assert.DoesNotContain(otherInbox.GetProperty("items").EnumerateArray(), n => n.GetProperty("id").GetInt32() == id);
+    }
+
+    [Fact]
+    public async Task Notification_pagination_and_bulk_read_do_not_skip_older_items_or_mark_new_arrivals()
+    {
+        using var owner = fixture.Client((await Register()).Token);
+        using var stranger = fixture.Client((await Register()).Token);
+        for (var i = 0; i < 23; i++) await Create(owner);
+        await Create(stranger);
+        var first = await owner.GetFromJsonAsync<JsonElement>("/api/notifications");
+        var rows = first.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(20, rows.Length);
+        var throughId = rows[0].GetProperty("id").GetInt32();
+        var cursor = first.GetProperty("nextBeforeId").GetInt32();
+        await Create(owner);
+        var second = await owner.GetFromJsonAsync<JsonElement>($"/api/notifications?beforeId={cursor}");
+        var tail = second.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(3, tail.Length);
+        Assert.Equal(JsonValueKind.Null, second.GetProperty("nextBeforeId").ValueKind);
+        Assert.Equal(23, rows.Concat(tail).Select(n => n.GetProperty("id").GetInt32()).Distinct().Count());
+        var response = await owner.PutAsJsonAsync("/api/notifications/read-all", new { throughId });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("unreadCount").GetInt32());
+        var refreshed = await owner.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.Equal(JsonValueKind.Null, refreshed.GetProperty("items")[0].GetProperty("readAt").ValueKind);
+        Assert.Equal(1, (await stranger.GetFromJsonAsync<JsonElement>("/api/notifications/unread-count")).GetProperty("unreadCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task Fresh_inbox_is_empty_and_rejects_invalid_cursors_and_read_boundaries()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var inbox = await customer.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.Empty(inbox.GetProperty("items").EnumerateArray());
+        Assert.Equal(0, inbox.GetProperty("unreadCount").GetInt32());
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.GetAsync("/api/notifications?beforeId=0")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await customer.PutAsJsonAsync("/api/notifications/read-all", new { throughId = 0 })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await customer.PutAsync("/api/notifications/2147483647/read", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Creation_rescheduling_and_cancellation_replays_do_not_duplicate_notifications()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var payload = Booking(start, requestId: Guid.NewGuid());
+        var responses = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => customer.PostAsJsonAsync("/api/bookings", payload)));
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        var id = (await responses[0].Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule", new { startTime = start, expectedStartTime = start })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule", new { startTime = start.AddDays(1), expectedStartTime = start })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await customer.PutAsJsonAsync($"/api/orders/{id}/reschedule", new { startTime = start.AddDays(1), expectedStartTime = start })).StatusCode);
+        for (var i = 0; i < 2; i++) await customer.PutAsync($"/api/orders/{id}/cancel", null);
+        var inbox = await customer.GetFromJsonAsync<JsonElement>("/api/notifications");
+        Assert.Equal(3, inbox.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Notification_insert_failure_rolls_back_the_booking_transition_and_other_recipient_notification()
+    {
+        using var customer = fixture.Client((await Register()).Token);
+        using var cleaner = fixture.Client((await Register("Cleaner")).Token);
+        var id = await Create(customer);
+        using var scope = fixture.Api.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        // Fault injection only in this fixture's generated database, removed even if assertions fail.
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Notifications] WITH NOCHECK ADD CONSTRAINT [CK_Test_NotificationFailure] CHECK ([EventKey] NOT LIKE 'Accepted:%')");
+        try
+        {
+            Assert.Equal(HttpStatusCode.InternalServerError, (await cleaner.PutAsync($"/api/cleaner/jobs/{id}/accept", null)).StatusCode);
+            Assert.Equal("Pending", Assert.Single((await customer.GetFromJsonAsync<JsonElement[]>("/api/orders"))!).GetProperty("status").GetString());
+            Assert.Empty((await cleaner.GetFromJsonAsync<JsonElement>("/api/notifications")).GetProperty("items").EnumerateArray());
+        }
+        finally { await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Notifications] DROP CONSTRAINT [CK_Test_NotificationFailure]"); }
+    }
+
+    [Fact]
     public async Task Concurrent_booking_retries_create_one_order_with_the_same_receipt()
     {
         using var customer = fixture.Client((await Register()).Token);

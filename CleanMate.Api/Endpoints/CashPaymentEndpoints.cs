@@ -25,10 +25,19 @@ public static class CashPaymentEndpoints
         var payment = new Payment { BookingId = id, Amount = booking.Price,
             CollectedByCleanerId = cleaner.Id, CreatedAt = now, PaidAt = now };
         db.Payments.Add(payment);
-        try { await db.SaveChangesAsync(); }
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+            BookingNotifications.Add(db, booking.UserId, id, $"CashDeclared:{id}", "Cleaner xác nhận đã nhận tiền mặt",
+                $"Cleaner đã ghi nhận nhận đủ tiền mặt cho CM{id}. Đây là xác nhận của cleaner.");
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         catch (DbUpdateException)
         {
             // A unique BookingId permits one receipt even when requests race.
+            await transaction.RollbackAsync();
             db.ChangeTracker.Clear();
             existing = await db.Payments.AsNoTracking().SingleOrDefaultAsync(p => p.BookingId == id);
             if (existing is null) throw;
