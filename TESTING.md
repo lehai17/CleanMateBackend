@@ -8,12 +8,13 @@ Authentication throttling and proxy/password-bound checks are documented in
 an isolated SQL database and low limits; functional suites use higher limits.
 
 Verified on 16 October 2026: 171 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 38 frontend tests, 50 customer-web
-Playwright cases, 30 admin Playwright cases, 28 cleaner-web Playwright cases,
-9 cleaner-web Node tests, 7 cleaner-mobile tests and 5 admin Node tests.
+warnings/errors. The companion suites passed 41 frontend tests, 54 customer-web
+Playwright cases, 34 admin Playwright cases, 32 cleaner-web Playwright cases,
+13 cleaner-web Node tests, 11 cleaner-mobile tests and 9 admin Node tests.
 
-Customer mobile additionally passes 4 rebooking draft/privacy/limit tests (`npm test`)
-and exports its Android bundle (1369 modules). Cleaner Android exports 1318 modules.
+Customer mobile passes 8 rebooking/preferences tests (`npm test`)
+and exports its Android bundle (1372 modules). Cleaner Android exports 1327 modules.
+Language/appearance coverage is documented in [UI_PREFERENCES.md](UI_PREFERENCES.md).
 Account recovery covers all roles, single-use/expired/undelivered codes, hashing,
 session revocation, uniform public responses, concurrent consumption, failed writes,
 delivery failure and per-IP attempt quotas. Tests inject an in-memory email sender;

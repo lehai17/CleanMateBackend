@@ -1,0 +1,894 @@
+Đăng nhập|Sign in
+Đăng ký|Sign up
+Đăng xuất|Sign out
+Trang chủ|Home
+Dịch vụ|Services
+Đặt lịch|Book a service
+Đơn hàng|Orders
+Hồ sơ|Profile
+Thông báo|Notifications
+Hỗ trợ|Support
+Bảo mật|Security
+Cài đặt|Settings
+Tổng quan|Overview
+Tìm việc|Find work
+Công việc|Jobs
+Lịch làm|Schedule
+Lịch|Calendar
+Thu nhập|Earnings
+Quên mật khẩu?|Forgot password?
+Mật khẩu|Password
+Mật khẩu *|Password *
+Mật khẩu hiện tại|Current password
+Mật khẩu mới|New password
+Mật khẩu khôi phục mới|New recovery password
+Mật khẩu mới (ít nhất 12 ký tự)|New password (at least 12 characters)
+Nhập lại mật khẩu|Confirm password
+Nhập lại mật khẩu mới|Confirm new password
+Nhập lại mật khẩu khôi phục|Confirm recovery password
+Xác nhận mật khẩu *|Confirm password *
+Hiện mật khẩu|Show password
+Ẩn mật khẩu|Hide password
+Email khôi phục|Recovery email
+Mã khôi phục|Recovery code
+Mã xác minh email|Email verification code
+Dán mã khôi phục|Paste recovery code
+Dán mã xác minh email|Paste email verification code
+Gửi mã khôi phục|Send recovery code
+Gửi mã xác minh email|Send verification code
+Khôi phục mật khẩu|Recover password
+Đặt lại mật khẩu|Reset password
+Lưu mật khẩu mới|Save new password
+Quay lại đăng nhập|Back to sign in
+Xác minh email|Verify email
+Email đã được xác minh.|Email verified.
+Chưa xác minh email.|Email not verified.
+Tải lại trạng thái email|Refresh email status
+Tải lại trạng thái|Refresh status
+Hai mật khẩu mới không khớp.|New passwords do not match.
+Nhập email khôi phục trước.|Enter your recovery email first.
+Không thể tải trạng thái email.|Unable to load email status.
+Không thể xác minh email.|Unable to verify email.
+Mã dùng một lần, có hiệu lực 30 phút. Chỉ yêu cầu lại sau 2 phút.|Single-use code, valid for 30 minutes. Wait 2 minutes before requesting another.
+Mã dùng một lần, hết hạn sau 30 phút. Chỉ yêu cầu lại sau 2 phút.|Single-use code, expires in 30 minutes. Wait 2 minutes before requesting another.
+Chỉ yêu cầu lại sau 2 phút. Kiểm tra cả thư rác.|Wait 2 minutes before requesting another. Check your spam folder too.
+Nhập email đăng ký và mã nhận qua email. Mã dùng một lần, có hiệu lực 30 phút. Tài khoản chỉ đăng nhập Google khôi phục qua Google.|Enter your registered email and the code from your inbox. Codes are single-use and valid for 30 minutes. Google-only accounts recover through Google.
+Nhập email đăng ký, sau đó dán mã nhận qua email để đặt mật khẩu mới. Mã có hiệu lực 30 phút. Tài khoản chỉ đăng nhập Google tiếp tục khôi phục qua Google.|Enter your registered email, then paste the emailed code to reset your password. Codes are valid for 30 minutes. Google-only accounts recover through Google.
+Mật khẩu tối đa 72 byte UTF-8. Các phiên đăng nhập cũ sẽ bị thu hồi.|Maximum password length: 72 UTF-8 bytes. Previous sessions will be revoked.
+Mật khẩu mới tối thiểu 12 ký tự, tối đa 72 byte UTF-8. Các phiên cũ sẽ bị thu hồi.|Use at least 12 characters and at most 72 UTF-8 bytes. Previous sessions will be revoked.
+Mật khẩu mới ít nhất 12 ký tự. Sau khi lưu, tất cả phiên đăng nhập cũ sẽ hết hiệu lực, gồm cả phiên này.|Use at least 12 characters. Saving signs out all previous sessions, including this one.
+Mật khẩu từ 8 ký tự, tối đa 72 byte UTF-8. Ký tự có dấu có thể chiếm nhiều byte.|Use at least 8 characters and at most 72 UTF-8 bytes. Accented characters may use multiple bytes.
+Đổi mật khẩu|Change password
+Quản lý phiên đăng nhập|Manage sessions
+Bảo mật thông tin đăng nhập|Protect your sign-in details
+Đăng xuất tất cả thiết bị|Sign out all devices
+Đăng xuất tất cả thiết bị?|Sign out all devices?
+Đăng xuất tất cả thiết bị, gồm cả thiết bị này?|Sign out all devices, including this one?
+Gồm cả thiết bị này. Mật khẩu không thay đổi.|Includes this device. Your password stays the same.
+Đăng xuất tất cả phiên CleanMate, gồm cả thiết bị này. Mật khẩu không thay đổi. Áp dụng cả với tài khoản Google.|Sign out all CleanMate sessions, including this device. Your password stays the same. Also applies to Google accounts.
+Đăng xuất tất cả thiết bị, gồm cả thiết bị này. Mật khẩu không thay đổi. Áp dụng cả với tài khoản Google.|Sign out all devices, including this one. Your password stays the same. Also applies to Google accounts.
+Đã đăng xuất tất cả thiết bị|All devices signed out
+Đã đăng xuất tất cả thiết bị. Vui lòng đăng nhập lại.|All devices signed out. Please sign in again.
+Đã đổi mật khẩu|Password changed
+Đã đổi mật khẩu. Vui lòng đăng nhập lại.|Password changed. Please sign in again.
+Vui lòng đăng nhập lại trên các thiết bị bằng mật khẩu mới.|Please sign in again on your devices using your new password.
+Vui lòng đăng nhập lại. Mật khẩu không thay đổi.|Please sign in again. Your password stays the same.
+Chọn dịch vụ|Choose a service
+Chọn giờ & thời lượng|Choose time and duration
+Chọn giờ bắt đầu|Choose start time
+Chọn giờ mới|Choose a new time
+Chọn ngày|Choose a date
+Chọn ngày mới|Choose a new date
+Chọn thời gian|Choose a time
+Chọn số sao|Choose a rating
+Chọn đơn gần đây|Choose a recent order
+Thời gian|Time
+Thời gian làm việc|Working hours
+Thời lượng|Duration
+Thời lượng:|Duration:
+Ngày|Date
+Ngày:|Date:
+Ngày giờ mới|New date and time
+Ngày giờ mới:|New date and time:
+Ngày làm việc|Work date
+Ngày làm việc (YYYY-MM-DD, giờ Việt Nam)|Work date (YYYY-MM-DD, Vietnam time)
+Giờ bắt đầu|Start time
+Giờ:|Time:
+giờ|hours
+giờ)|hours)
+giờ (tối thiểu|hours (minimum
+Tối thiểu|Minimum
+Giá / giờ|Price / hour
+Giá dịch vụ|Service pricing
+Giá:|Price:
+Giá và thời lượng giữ nguyên.|Price and duration stay the same.
+Giá hiện tại theo giờ. Khách trả tiền mặt trực tiếp cho cleaner sau khi hoàn thành ca.|Current hourly rates. Customers pay the cleaner directly in cash after the job.
+Giá hiện tại theo giờ. Khách trả tiền mặt trực tiếp sau khi hoàn thành ca.|Current hourly rates. Customers pay directly in cash after the job.
+Giá dịch vụ do CleanMate cấu hình. Khách trả tiền mặt trực tiếp cho bạn sau ca.|CleanMate sets service rates. Customers pay you directly in cash after the job.
+Giá được hiển thị và xác nhận khi đặt lịch. Khách và cleaner kiểm tra thông tin đơn trước khi thực hiện công việc.|Prices are shown and confirmed when booking. Both parties check order details before work begins.
+Thông tin dịch vụ|Service details
+Thông tin khách hàng|Customer details
+Thông tin cá nhân|Personal details
+Thông tin cá nhân:|Personal details:
+Thông tin|Information
+Thông tin sử dụng:|Usage information:
+Thông tin thanh toán lưu từ trước|Previously stored payment information
+Thông tin rõ ràng, dễ theo dõi|Clear information, easy to follow
+Chi tiết|Details
+Chi tiết thanh toán|Payment details
+Tóm tắt đơn hàng|Order summary
+Kiểm tra thông tin đặt lịch và hoàn tất bước xác nhận.|Check your booking details and confirm.
+Vui lòng kiểm tra lại thông tin trước khi xác nhận|Please check your details before confirming
+Vui lòng kiểm tra lại thông tin.|Please check your details.
+Họ tên|Full name
+Họ tên:|Full name:
+Họ và tên *|Full name *
+Nhập họ và tên|Enter your full name
+Nhập họ và tên của bạn|Enter your full name
+Số điện thoại|Phone number
+Số điện thoại *|Phone number *
+SĐT liên hệ:|Contact phone:
+Điện thoại:|Phone:
+Nhập số điện thoại|Enter your phone number
+Địa chỉ|Address
+Địa chỉ *|Address *
+Địa chỉ:|Address:
+Số nhà, đường, phường/xã, quận/huyện|House number, street, ward, district
+Nhập địa chỉ chi tiết (số nhà, đường, phường/xã, quận/huyện)|Enter your full address (house number, street, ward, district)
+Nhập email|Enter your email
+Nhập email của bạn|Enter your email
+Nhập địa chỉ email|Enter your email address
+Nhập mật khẩu (ít nhất 6 ký tự)|Enter password (at least 6 characters)
+Nhập mật khẩu (ít nhất 8 ký tự)|Enter password (at least 8 characters)
+Ghi chú đặc biệt|Special instructions
+Ghi chú:|Notes:
+Yêu cầu đặc biệt, hướng dẫn đến địa chỉ, lưu ý về thú cưng...|Special requests, directions, pets to be aware of...
+Yêu cầu đặc biệt, hướng dẫn đến địa chỉ, thú cưng...|Special requests, directions, pets...
+Tạm tính|Subtotal
+Tạm tính:|Subtotal:
+Giảm giá|Discount
+Giảm giá:|Discount:
+Tổng cộng|Total
+Tổng cộng:|Total:
+Tổng tiền:|Total:
+Thanh toán|Payment
+Thanh toán:|Payment:
+Phương thức thanh toán|Payment method
+Thanh toán tiền mặt trực tiếp|Pay directly in cash
+Tiền mặt trực tiếp|Direct cash payment
+Tiền mặt trực tiếp sau khi hoàn thành ca|Cash directly after the job
+Tiền mặt trực tiếp cho cleaner sau khi hoàn thành ca|Cash directly to the cleaner after the job
+Tiền mặt trực tiếp cho cleaner sau khi hoàn thành ca.|Cash directly to the cleaner after the job.
+Khách trả tiền mặt trực tiếp sau ca|Customer pays directly in cash after the job
+Khách trả tiền mặt trực tiếp cho cleaner sau khi hoàn thành ca. CleanMate chỉ kết nối dịch vụ, không thu hoặc giữ tiền.|Customers pay the cleaner directly in cash after the job. CleanMate connects services and does not collect or hold money.
+Khách trả tiền mặt trực tiếp cho cleaner sau khi hoàn thành ca. CleanMate không thu hoặc giữ tiền.|Customers pay the cleaner directly in cash after the job. CleanMate does not collect or hold money.
+CleanMate chỉ kết nối dịch vụ, không thu hoặc giữ tiền.|CleanMate connects services and does not collect or hold money.
+CleanMate chỉ kết nối dịch vụ, không thu, giữ hoặc chuyển tiền giữa hai bên.|CleanMate connects services and does not collect, hold or transfer money between the parties.
+Khách trả đủ số tiền của đơn hàng trực tiếp cho cleaner. Hai bên kiểm tra số tiền trước khi kết thúc ca.|Customers pay the full order amount directly to the cleaner. Both parties check the amount before ending the job.
+Khách kiểm tra công việc và trả tiền mặt trực tiếp cho cleaner sau ca.|Customers check the work and pay the cleaner directly in cash after the job.
+Khách trả tiền mặt trực tiếp sau ca. Chỉ xác nhận nhận tiền khi bạn đã nhận đủ từ khách.|Customers pay directly in cash after the job. Confirm receipt only after receiving the full amount.
+Khách trả tiền trực tiếp cho bạn. Tổng tiền trên là số bạn tự xác nhận đã nhận, không phải số dư hoặc khoản app sẽ chuyển.|Customers pay you directly. This total is what you declared receiving, not a balance or a transfer due from the app.
+Hệ thống hiện không thu hoa hồng hoặc tính phí nền tảng vào khoản tiền phải trả cho cleaner.|The platform currently charges no commission or platform fee against the cleaner's payment.
+Cleaner xác nhận đã nhận tiền mặt|Cleaner reported receiving cash
+Cleaner ghi nhận nhận tiền|Cleaner reported payment receipt
+Xác nhận đã nhận tiền mặt|Confirm cash received
+Xác nhận thu tiền|Confirm payment receipt
+Tiền mặt bạn đã xác nhận nhận|Cash you reported receiving
+Chưa có xác nhận nhận tiền|No payment receipt reported
+Chưa có xác nhận nhận tiền mặt|No cash receipt reported
+Đã nhận đủ|Received in full
+Đã lưu xác nhận nhận tiền mặt của bạn.|Your cash receipt report has been saved.
+Bạn đã xác nhận nhận đủ tiền mặt|You reported receiving the full cash payment
+Bạn đã nhận đủ tiền mặt trực tiếp từ khách cho CM|You received the full cash payment directly from the customer for CM
+đ cho CM|VND for CM
+đ tiền mặt cho CM|VND in cash for CM
+Thời gian xác nhận:|Reported at:
+Ghi nhận cũ|Legacy record
+Ghi nhận cũ cần kiểm tra|Legacy record requiring review
+Ghi nhận trên hệ thống|System record
+Cleaner có thể xác nhận đã nhận đủ tiền mặt sau khi hoàn thành công việc. Đây là thông tin do cleaner cung cấp; hệ thống lưu thời gian xác nhận.|Cleaners can report receiving the full cash payment after completion. This is the cleaner's declaration; the system records its timestamp.
+Khách xác nhận hoàn thành và đánh giá chất lượng trên đơn hàng.|Customers confirm completion and rate the quality on the order.
+Khách xác nhận hoàn thành và đánh giá công việc riêng. Việc đánh giá không tự động xác nhận đã trả tiền.|Customers confirm completion and review the work separately. A review does not automatically confirm payment.
+Xác nhận công việc đã hoàn thành. Đánh giá này không xác nhận đã trả tiền.|Confirm that work is complete. This review does not confirm payment.
+Khách đã xác nhận hoàn thành|Customer confirmed completion
+Khách đã xác nhận hoàn thành · Đánh giá:|Customer confirmed completion · Rating:
+Xác nhận và đánh giá|Confirm and review
+Đánh giá ca làm|Review the job
+Đánh giá ca làm:|Job rating:
+Đánh giá & Nhận xét|Ratings & reviews
+Đánh giá:|Rating:
+Nhận xét ca làm|Job feedback
+Nhận xét (không bắt buộc)|Comments (optional)
+Gửi đánh giá|Submit review
+Xác nhận|Confirm
+Xác nhận đơn|Confirm order
+Xác nhận đặt lịch|Confirm booking
+Tiếp tục|Continue
+Quay lại|Back
+Hủy|Cancel
+Đóng|Close
+Mở|Open
+Chỉnh sửa|Edit
+Chỉnh sửa hoặc cập nhật thông tin|Edit or update information
+Đặt lịch mới|New booking
+Đặt lịch ngay|Book now
+Đặt lịch nhanh|Quick booking
+Đặt lịch nhanh chóng|Quick booking
+Đặt lại|Book again
+Đặt lại từ CM|Book again from CM
+Đổi lịch|Reschedule
+Lưu lịch mới|Save new schedule
+Chỉ đổi ngày/giờ khi chưa có cleaner nhận. Giá và thời lượng giữ nguyên.|Change the date and time only before a cleaner accepts. Price and duration stay the same.
+Đã đổi lịch|Rescheduled
+Đã đổi lịch thành công. Giá và thời lượng giữ nguyên.|Rescheduled successfully. Price and duration stay the same.
+Hủy lịch|Cancel booking
+Hủy đơn|Cancel order
+Bạn có chắc muốn hủy đơn này?|Are you sure you want to cancel this order?
+Bạn muốn hủy đơn này?|Cancel this order?
+Đơn hàng của tôi|My orders
+Đơn khách hàng|Customer order
+Đơn chờ nhận|Orders awaiting a cleaner
+Đơn hôm nay|Today's orders
+Mã đơn|Order ID
+Mã đơn / Lịch|Order ID / Schedule
+Mã đơn (ví dụ CM123)|Order ID (e.g. CM123)
+Mã đơn, khách hàng hoặc số điện thoại|Order ID, customer or phone number
+Mã CM, khách hàng, địa chỉ|CM ID, customer, address
+Mã đặt lịch của bạn:|Your booking ID:
+Ví dụ: CM123|E.g. CM123
+Ví dụ: 2026-10-20; để trống để xem tất cả|E.g. 2026-10-20; leave blank to view all
+Xem đơn CM|View order CM
+Xem đơn hàng|View orders
+Trạng thái|Status
+Trạng thái:|Status:
+Trạng thái hồ sơ:|Application status:
+Chờ nhận|Awaiting a cleaner
+Chờ duyệt|Pending approval
+Chờ xét hồ sơ|Application pending review
+Đang chờ xét duyệt|Pending review
+Đã nhận|Accepted
+Đang làm|In progress
+Hoàn thành|Completed
+Đã hủy|Cancelled
+Đã duyệt|Approved
+Cần bổ sung|More information needed
+Từ chối|Rejected
+Chưa có cleaner nhận việc|No cleaner has accepted yet
+Cleaner nhận việc:|Cleaner:
+Cleaner nhận việc|Cleaner accepts
+Bắt đầu:|Start:
+Hoàn thành:|Completed:
+Bắt đầu thực tế:|Actual start:
+Hoàn thành thực tế:|Actual completion:
+Lịch dự kiến:|Scheduled:
+Người liên hệ:|Contact:
+Chưa có số điện thoại|No phone number
+Chưa có số liên hệ|No contact number
+Chưa cập nhật số điện thoại|Phone number not provided
+Gọi cleaner|Call cleaner
+Gọi khách|Call customer
+Xem bản đồ|View map
+Công việc của tôi|My jobs
+Công việc đang chờ|Available jobs
+Tìm công việc|Find jobs
+Tìm công việc mới|Find new jobs
+Xem công việc|View jobs
+Xem tất cả công việc|View all jobs
+Lịch công việc|Job calendar
+Lịch làm việc|Work schedule
+Lịch sử công việc|Job history
+Ca sắp làm / đang làm|Upcoming / active jobs
+Ca đã hoàn thành|Completed jobs
+Nhận việc|Accept job
+Bắt đầu công việc|Start job
+Hoàn thành công việc|Complete job
+Ca trùng lịch đã nhận được tự động ẩn.|Jobs conflicting with accepted work are hidden automatically.
+Ca trùng lịch đã nhận sẽ được ẩn. Hoàn thành ca đang làm trước khi bắt đầu ca tiếp theo.|Conflicting jobs are hidden. Finish your active job before starting another.
+Ca trùng lịch đã nhận được ẩn. Hoàn thành ca đang làm trước khi bắt đầu ca tiếp theo.|Conflicting jobs are hidden. Finish your active job before starting another.
+Hoàn thành ca đang làm trước khi bắt đầu ca này.|Finish your active job before starting this one.
+Hoàn thành ca đang làm trước khi bắt đầu ca tiếp theo.|Finish your active job before starting another.
+Không tìm thấy ca này trong công việc của bạn. Thử tải lại hoặc xem tất cả công việc.|This job was not found in your jobs. Refresh or view all jobs.
+Không tìm thấy ca này trong công việc của bạn. Tải lại hoặc xem tất cả công việc.|This job was not found in your jobs. Refresh or view all jobs.
+Đang xem công việc CM|Viewing job CM
+từ thông báo.|from a notification.
+Bạn chưa nhận công việc nào.|You have not accepted any jobs.
+Chưa có công việc khả dụng.|No jobs available yet.
+Chưa có công việc phù hợp. Thử đổi ngày hoặc xóa bộ lọc.|No matching jobs. Change the date or clear filters.
+Không có công việc phù hợp. Thử xóa bộ lọc hoặc chọn ngày khác.|No matching jobs. Clear filters or choose another date.
+công việc phù hợp|matching jobs
+công việc phù hợp · Ngày theo giờ Việt Nam|matching jobs · Dates use Vietnam time
+Lọc|Filter
+Xóa bộ lọc|Clear filters
+Tất cả|All
+Chưa đọc|Unread
+Chưa đọc:|Unread:
+Đã đọc|Read
+Đánh dấu đã đọc|Mark as read
+Đánh dấu tất cả đã đọc|Mark all as read
+Bạn chưa có thông báo.|You have no notifications yet.
+Tải lại thông báo|Refresh notifications
+Cập nhật về đơn hàng và ca làm của bạn.|Updates on your orders and jobs.
+Thông báo này thuộc đơn khách hàng. Vui lòng mở web/app khách hàng để xem.|This notification is for a customer order. Open the customer website or app to view it.
+thông báo chưa đọc|unread notifications
+Hôm qua|Yesterday
+Yêu cầu của tôi|My support requests
+Bạn chưa có yêu cầu hỗ trợ.|You have no support requests yet.
+Gửi yêu cầu hỗ trợ|Send support request
+Hỗ trợ đơn hàng|Order support
+Loại sự cố|Issue type
+Lịch làm / không đến|Schedule / no-show
+Chất lượng|Quality
+Chất lượng công việc|Work quality
+Tiền mặt với khách/cleaner|Cash with customer/cleaner
+Vấn đề khác|Other issue
+Mô tả|Description
+Mô tả (10–2000 ký tự)|Description (10–2000 characters)
+Người gửi yêu cầu|Requester
+Phản hồi từ staff:|Staff response:
+Nhân viên chưa phản hồi.|No staff response yet.
+Đã tiếp nhận|Received
+Đang xử lý|In progress
+Đã giải quyết|Resolved
+Lịch sử trao đổi|Conversation history
+Chưa có trao đổi bổ sung.|No follow-up messages yet.
+Gửi tin nhắn|Send message
+Tin nhắn hỗ trợ|Support messages
+Tin cũ hơn|Older messages
+Đã hết lịch sử|End of history
+Tin bổ sung cho yêu cầu đã giải quyết sẽ mở lại yêu cầu để staff xử lý.|A new message on a resolved request reopens it for staff.
+Không gửi được. Thử lại sẽ dùng cùng mã tin nhắn.|Message not sent. Retrying will use the same message ID.
+Không gửi được. Thử lại sẽ dùng cùng mã yêu cầu.|Request not sent. Retrying will use the same request ID.
+Không gửi được. Vui lòng thử lại.|Unable to send. Please try again.
+Tải lại hỗ trợ|Refresh support
+Tải lại trao đổi|Refresh conversation
+Xem hỗ trợ|View support
+Xem trao đổi|View conversation
+Trao đổi HT|Support conversation
+Đã gửi yêu cầu HT|Support request sent
+Xử lý HT|Handle support request
+Phân công HT|Assign support request
+Phân công|Assign
+Chưa phân công|Unassigned
+Chưa có người nhận|Unclaimed
+Tôi phụ trách|Assigned to me
+Tất cả người phụ trách|All assignees
+Nhận xử lý|Claim request
+Bỏ nhận yêu cầu|Release request
+Bỏ nhận để nhân viên khác có thể nhận xử lý?|Release so another staff member can claim it?
+Bạn sẽ là người phụ trách theo dõi yêu cầu này.|You will be responsible for following up this request.
+(Tài khoản tạm khóa — cần Admin phân công lại)|(Account locked — admin must reassign)
+Phản hồi giải quyết cần ít nhất 10 ký tự.|Resolution response needs at least 10 characters.
+Báo sự cố lịch làm, chất lượng hoặc tiền mặt trực tiếp. Staff phản hồi tại đây; yêu cầu không tự thu/hoàn tiền hay thay đổi ca.|Report schedule, quality or direct cash issues. Staff reply here; requests do not automatically collect/refund money or change jobs.
+Báo sự cố lịch làm, chất lượng hoặc tiền mặt trực tiếp. Staff sẽ phản hồi tại đây; yêu cầu không tự thay đổi đơn hay thu/hoàn tiền.|Report schedule, quality or direct cash issues. Staff reply here; requests do not automatically change orders or collect/refund money.
+Khu vực cộng tác viên|Cleaner workspace
+Chủ động công việc, an tâm mỗi ca làm.|Choose your work and approach every job with confidence.
+Công việc rõ ràng, lịch làm chủ động.|Clear job details, a schedule you control.
+Hồ sơ cleaner|Cleaner applications
+Hồ sơ cleaner:|Cleaner application:
+Hồ sơ cộng tác viên|Cleaner profile
+Hồ sơ chờ duyệt|Applications awaiting review
+Hồ sơ ·|Application ·
+Chưa đăng ký|Not registered
+Cleaner đã duyệt|Approved cleaners
+Đăng ký làm cleaner|Apply as a cleaner
+Gửi hồ sơ cleaner|Submit cleaner application
+Gửi lại hồ sơ|Resubmit application
+Gửi lại hồ sơ cleaner|Resubmit cleaner application
+Gửi đăng ký|Submit application
+Lưu hồ sơ|Save profile
+Khu vực làm việc|Work area
+Thành phố|City
+Thành phố làm việc|Work city
+Giới thiệu kinh nghiệm|Describe your experience
+Giới thiệu|About
+Kinh nghiệm|Experience
+Kỹ năng & chứng chỉ|Skills & qualifications
+Tải lại trạng thái hồ sơ|Refresh application status
+Tải lại tổng quan|Refresh overview
+Hồ sơ cần được duyệt trước khi nhận việc. Khách trả tiền mặt trực tiếp sau ca.|Your application must be approved before accepting jobs. Customers pay directly in cash after the job.
+Hồ sơ cần được nhân viên duyệt trước khi bạn được nhận ca làm.|Staff must approve your application before you can accept jobs.
+Đã gửi hồ sơ. Vui lòng chờ nhân viên duyệt.|Application submitted. Please wait for staff approval.
+Đã gửi hồ sơ cleaner. Vui lòng chờ nhân viên xét duyệt trước khi nhận việc.|Cleaner application submitted. Please wait for staff approval before accepting jobs.
+Đã lưu hồ sơ.|Profile saved.
+Lý do:|Reason:
+Khu vực|Area
+Nhân sự|Team
+Nhân viên|Staff
+Nhân viên vận hành|Operations staff
+Quản trị|Administration
+Quản trị viên|Administrator
+CleanMate Quản trị|CleanMate Administration
+Mở trang quản trị|Open admin portal
+Ứng viên|Applicant
+Tên, email hoặc thành phố|Name, email or city
+Khách & liên hệ|Customer & contact
+Đối tượng|Target
+Vai trò|Role
+Người thao tác|Actor
+Thao tác|Action
+Hành động|Action
+Ngày gửi|Submitted
+Giá trị|Value
+Nhật ký thao tác|Audit log
+Theo dõi thao tác của đội ngũ quản trị.|Track actions by the management team.
+Các thao tác do tài khoản của bạn thực hiện.|Actions performed by your account.
+Dịch vụ & giá|Services & pricing
+Cấu hình ·|Configure ·
+Quản lý giá áp dụng cho đơn mới. Lịch sử đơn hàng giữ nguyên giá đã đặt.|Manage prices for new orders. Existing orders retain their booked prices.
+Bạn có quyền xem cấu hình. Chỉ Admin được thay đổi giá.|You can view settings. Only admins can change prices.
+Chỉ xem|View only
+Chỉ Admin được quản lý nhân sự.|Only admins can manage staff.
+Tạo tài khoản Staff|Create staff account
+Khóa|Lock
+Tạm khóa|Locked
+Khóa truy cập|Lock access
+Mở truy cập|Unlock access
+quyền truy cập của|access for
+Đang hoạt động|Active
+Xem & duyệt|View & review
+Đã lưu thay đổi.|Changes saved.
+Đã cập nhật phân công xử lý.|Assignment updated.
+Đã cập nhật quyền truy cập.|Access updated.
+Đã cập nhật yêu cầu và thông báo cho người gửi.|Request updated and requester notified.
+Tải lại|Refresh
+Thử lại|Try again
+Thử lại sau|Try again later
+Lỗi|Error
+Thành công|Success
+Thiếu thông tin|Missing information
+Không có|None
+Bạn|You
+Chào|Hello
+Liên hệ|Contact
+Tài khoản|Account
+Cá nhân|Personal
+Xem hồ sơ|View profile
+Xem bảo mật|View security
+Xem thêm|View more
+Về trang chủ|Back to home
+Ghi nhớ đăng nhập|Remember me
+Đăng nhập ngay|Sign in now
+Đăng ký ngay|Sign up now
+Đăng ký CleanMate|Join CleanMate
+Tạo tài khoản mới|Create an account
+Tạo tài khoản khách hàng mới|Create a customer account
+Chưa có tài khoản?|Don't have an account?
+Đã có tài khoản?|Already have an account?
+Đã có tài khoản? Đăng nhập|Already have an account? Sign in
+Bạn chưa đăng nhập|You are not signed in
+Đăng nhập với vai trò|Sign in as
+Bạn muốn đăng ký với vai trò gì? *|Which role would you like to register as? *
+👥 Khách hàng|👥 Customer
+🧹 Người giúp việc|🧹 Cleaner
+💬 Tin nhắn|💬 Messages
+Tôi đồng ý với|I agree to the
+và|and
+Điều khoản sử dụng|Terms of use
+Chính sách bảo mật|Privacy policy
+Chính sách hoàn tiền|Refund policy
+Vui lòng đồng ý với điều khoản sử dụng|Please agree to the terms of use
+Vui lòng cung cấp thông tin để chúng tôi liên lạc và cung cấp dịch vụ|Please provide your details so we can contact you and provide services
+Vui lòng cung cấp thông tin để chúng tôi liên lạc và phục vụ|Please provide your details so we can contact and serve you
+Vui lòng nhập đầy đủ thông tin.|Please complete all required fields.
+Vui lòng nhập Họ tên, Số điện thoại và Địa chỉ|Please enter your full name, phone number and address
+Vui lòng điền đầy đủ thông tin bắt buộc (Họ tên, Số điện thoại, Địa chỉ)|Please complete all required fields (full name, phone number, address)
+Vui lòng nhập email|Please enter your email
+Vui lòng nhập họ tên|Please enter your full name
+Vui lòng nhập họ tên và thành phố.|Please enter your full name and city.
+Vui lòng nhập lý do.|Please enter a reason.
+Vui lòng nhập mật khẩu|Please enter your password
+Vui lòng nhập số điện thoại|Please enter your phone number
+Vui lòng xác nhận mật khẩu|Please confirm your password
+Vui lòng nhập đúng định dạng email|Please enter a valid email
+Email không hợp lệ|Invalid email
+Số điện thoại không hợp lệ|Invalid phone number
+Số điện thoại liên hệ không hợp lệ (6 đến 15 chữ số).|Invalid contact phone number (6 to 15 digits).
+Số điện thoại liên hệ phải có từ 6 đến 15 chữ số.|Contact phone number must contain 6 to 15 digits.
+Mật khẩu phải có ít nhất 8 ký tự|Password must contain at least 8 characters
+Mật khẩu xác nhận không khớp|Passwords do not match
+Nhập mật khẩu hiện tại và mật khẩu mới ít nhất 12 ký tự.|Enter your current password and a new password of at least 12 characters.
+Nhập mã đơn hợp lệ và mô tả từ 10 ký tự.|Enter a valid order ID and a description of at least 10 characters.
+Nhập mã đơn hợp lệ và mô tả ít nhất 10 ký tự.|Enter a valid order ID and a description of at least 10 characters.
+Nhập ngày hợp lệ theo YYYY-MM-DD hoặc xóa để xem tất cả.|Enter a valid YYYY-MM-DD date or clear to view all.
+Ngày giờ không hợp lệ|Invalid date or time
+Vui lòng chọn ngày giờ trong tương lai.|Please choose a future date and time.
+Giờ bạn chọn đã qua so với hiện tại. Vui lòng chọn giờ lớn hơn.|The selected time is in the past. Please choose a later time.
+Giờ bạn chọn đã qua so với thời điểm hiện tại. Vui lòng chọn giờ lớn hơn.|The selected time is in the past. Please choose a later time.
+Bạn có thể chọn bất kỳ thời điểm nào trong ngày (độ phân giải 1 phút).|Choose any time of day (in 1-minute increments).
+Bạn có thể chọn bất kỳ thời điểm nào trong ngày (độ phân giải 1 phút). Tối thiểu:|Choose any time of day (in 1-minute increments). Minimum:
+Hiện chưa có dịch vụ mở đặt lịch.|No services are currently available for booking.
+Dịch vụ cũ không còn mở đặt. Vui lòng chọn dịch vụ khác.|The previous service is no longer available. Please choose another.
+Thời lượng đã điều chỉnh theo giới hạn hiện tại; vui lòng kiểm tra lại.|Duration was adjusted to current limits; please check it.
+. Chọn lịch mới và kiểm tra thông tin; giá áp dụng theo dịch vụ hiện tại. Cleaner sẽ nhận ca mới theo tình trạng còn trống.|. Choose a new schedule and check the details; current rates apply. A cleaner will accept the new job based on availability.
+Vui lòng nhập email và mật khẩu.|Please enter your email and password.
+Sai email hoặc mật khẩu.|Incorrect email or password.
+Sai email hoặc mật khẩu. Vui lòng thử lại.|Incorrect email or password. Please try again.
+Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.|Incorrect email or password, or the account is locked.
+Phiên đăng nhập hết hạn hoặc thông tin đăng nhập không đúng.|Session expired or invalid sign-in details.
+Phiên đăng nhập đã hết hạn hoặc tài khoản đã bị khóa.|Session expired or account locked.
+Bạn chưa có quyền thực hiện thao tác này.|You do not have permission for this action.
+Bạn không có quyền thực hiện thao tác này.|You do not have permission for this action.
+Tài khoản không có quyền quản trị.|This account has no management access.
+Tài khoản này không có quyền quản trị.|This account has no management access.
+Tài khoản này không thuộc khu vực cleaner.|This account cannot access the cleaner workspace.
+Ứng dụng này dành cho tài khoản khách hàng/cleaner.|This app is for customer/cleaner accounts.
+Vui lòng sử dụng tài khoản khách hàng/cleaner để đăng ký hoặc làm việc.|Please use a customer/cleaner account to register or work.
+Khu vực Admin/Staff đã được tách thành ứng dụng quản trị riêng.|Admin/staff access is available in a separate management app.
+Đăng nhập thất bại|Sign-in failed
+Đăng ký thất bại|Sign-up failed
+Đăng ký thất bại.|Sign-up failed.
+Đăng ký thành công!|Account created!
+Đăng ký thành công, vui lòng đăng nhập.|Account created. Please sign in.
+Đặt lịch thất bại|Booking failed
+Đặt lịch thành công!|Booking successful!
+Đã nhận công việc.|Job accepted.
+Đã bắt đầu công việc.|Job started.
+Đã hoàn thành công việc.|Job completed.
+Đã cập nhật công việc.|Job updated.
+Không thể nhận việc|Unable to accept job
+Không thể đổi lịch|Unable to reschedule
+Không thể đặt lại|Unable to book again
+Không thể đăng ký|Unable to sign up
+Không thể mở|Unable to open
+Không thể mở cuộc gọi|Unable to open phone call
+Hãy gọi số điện thoại hiển thị trong đơn hàng.|Please call the phone number shown on the order.
+Thiết bị không có ứng dụng phù hợp. Bạn có thể dùng thông tin liên hệ/địa chỉ hiển thị trong ca.|No compatible app found. Use the contact details or address shown on the job.
+Yêu cầu không thành công. Vui lòng thử lại.|Request failed. Please try again.
+Vui lòng thử lại.|Please try again.
+Không thể kết nối. Vui lòng thử lại.|Unable to connect. Please try again.
+Không thể kết nối để kiểm tra tài khoản. Vui lòng thử lại.|Unable to connect to check your account. Please try again.
+Không thể đăng nhập.|Unable to sign in.
+Không thể đăng nhập/đăng ký. Kiểm tra thông tin và kết nối.|Unable to sign in/sign up. Check your details and connection.
+Không thể đăng xuất. Vui lòng thử lại.|Unable to sign out. Please try again.
+Không thể đổi mật khẩu. Vui lòng thử lại.|Unable to change password. Please try again.
+Không thể đổi lịch. Vui lòng thử lại.|Unable to reschedule. Please try again.
+Không thể hủy đơn.|Unable to cancel the order.
+Không thể gửi đánh giá.|Unable to submit review.
+Không thể gửi đánh giá. Vui lòng thử lại.|Unable to submit review. Please try again.
+Không thể gửi. Vui lòng thử lại.|Unable to send. Please try again.
+Không thể lưu hồ sơ. Vui lòng thử lại.|Unable to save profile. Please try again.
+Không thể lưu. Vui lòng thử lại.|Unable to save. Please try again.
+Không thể cập nhật công việc. Vui lòng thử lại.|Unable to update job. Please try again.
+Không thể tải công việc. Vui lòng thử lại.|Unable to load jobs. Please try again.
+Không thể tải dịch vụ. Vui lòng thử lại.|Unable to load services. Please try again.
+Không thể tải dịch vụ và giá. Vui lòng thử lại.|Unable to load services and pricing. Please try again.
+Không thể tải hồ sơ. Vui lòng thử lại.|Unable to load profile. Please try again.
+Không thể tải lại hồ sơ.|Unable to refresh profile.
+Không thể tải thông báo. Vui lòng thử lại.|Unable to load notifications. Please try again.
+Không thể tải thông tin đặt lại. Vui lòng thử lại.|Unable to load previous booking details. Please try again.
+Không thể tải thông tin. Vui lòng thử lại.|Unable to load details. Please try again.
+Không thể tải đơn hàng.|Unable to load orders.
+Không thể xử lý trao đổi. Vui lòng thử lại.|Unable to process the conversation. Please try again.
+Không thể xử lý yêu cầu. Vui lòng thử lại.|Unable to process the request. Please try again.
+Không thể xử lý. Vui lòng thử lại.|Unable to process. Please try again.
+Không thể đánh dấu đã đọc. Vui lòng thử lại.|Unable to mark as read. Please try again.
+Không tải được dữ liệu. Vui lòng thử lại.|Unable to load data. Please try again.
+Không tải được thông báo. Vui lòng thử lại.|Unable to load notifications. Please try again.
+Không tải được trao đổi. Vui lòng thử lại.|Unable to load conversation. Please try again.
+Không tải được yêu cầu hỗ trợ. Vui lòng thử lại.|Unable to load support requests. Please try again.
+Không tải được yêu cầu. Vui lòng thử lại.|Unable to load requests. Please try again.
+Đang gửi...|Sending...
+Đang lưu...|Saving...
+Đang nhận...|Accepting...
+Đang xử lý...|Processing...
+Đang cập nhật...|Updating...
+Đang đăng nhập...|Signing in...
+Đang đăng ký...|Signing up...
+Đang đặt lịch...|Booking...
+Đang tải...|Loading...
+Đang tải…|Loading…
+Đang tải dịch vụ...|Loading services...
+Đang tải thông báo...|Loading notifications...
+Đang tải trao đổi...|Loading conversation...
+Đang kiểm tra tài khoản...|Checking account...
+Trang trước|Previous page
+Trang sau|Next page
+kết quả · Trang|results · Page
+đơn ·|orders ·
+yêu cầu|requests
+· Phiên bản|· Version
+Tháng trước|Previous month
+Tháng sau|Next month
+Tháng 1|January
+Tháng 2|February
+Tháng 3|March
+Tháng 4|April
+Tháng 5|May
+Tháng 6|June
+Tháng 7|July
+Tháng 8|August
+Tháng 9|September
+Tháng 10|October
+Tháng 11|November
+Tháng 12|December
+chưa chọn|not selected
+đ/giờ|VND/hour
+đ/giờ ·|VND/hour ·
+đ/giờ • Tối thiểu|VND/hour • Minimum
+đ ·|VND ·
+đ|VND
+Dọn dẹp nhà cửa|House cleaning
+Dọn Dẹp Tổng Quát|General cleaning
+Nấu ăn và rửa bát|Cooking & dishwashing
+Nấu Ăn & Rửa Bát|Cooking & dishwashing
+Giặt ủi quần áo|Laundry & ironing
+Giặt Ủi Quần Áo|Laundry & ironing
+Giặt ủi|Laundry
+Chăm sóc trẻ em|Childcare
+Chăm Sóc Trẻ Em|Childcare
+Dịch vụ CleanMate|CleanMate services
+Dịch vụ nổi bật|Featured services
+Xem dịch vụ|View services
+Xem bảng giá dịch vụ|View service pricing
+Xem giá hiện tại khi đặt lịch|View current prices when booking
+Lựa chọn dịch vụ phù hợp với nhu cầu của bạn|Choose a service that meets your needs
+Vệ sinh toàn bộ nhà cửa, lau chùi, hút bụi, sắp xếp đồ|House cleaning, wiping, vacuuming and tidying
+Vệ sinh toàn bộ nhà cửa, lau chùi, hút bụi, sắp xếp đồ đạc|House cleaning, wiping, vacuuming and tidying
+Chuẩn bị bữa ăn theo yêu cầu, rửa bát đĩa, dọn bếp|Prepare meals, wash dishes and clean the kitchen
+Chuẩn bị bữa ăn theo yêu cầu, rửa bát đĩa, dọn dẹp bếp|Prepare meals, wash dishes and clean the kitchen
+Giặt giũ, phơi khô, ủi là và sắp xếp quần áo|Wash, dry, iron and organize clothing
+Giặt giũ, phơi khô, ủi là và sắp xếp quần áo gọn gàng|Wash, dry, iron and organize clothing
+Trông trẻ, cho ăn, vui chơi và hoạt động phù hợp|Child supervision, feeding, play and age-appropriate activities
+Trông trẻ, cho ăn, vui chơi và các hoạt động phù hợp|Child supervision, feeding, play and age-appropriate activities
+Chuyên viên dọn dẹp chuyên nghiệp|Professional cleaning specialist
+2.5 năm|2.5 years
+Vệ sinh tổng quát, lau chùi cẩn thận và sắp xếp không gian gọn gàng.|Thorough cleaning and careful tidying for an orderly home.
+Lau dọn tổng quát, sắp xếp gọn gàng từng khu vực trong nhà.|General cleaning and tidying throughout your home.
+Chuẩn bị bữa ăn gia đình và giữ cho khu vực bếp luôn sạch sẽ, ngăn nắp.|Prepare family meals and keep your kitchen clean and tidy.
+Hỗ trợ chuẩn bị bữa ăn và giữ gian bếp sạch sẽ mỗi ngày.|Help prepare meals and keep the kitchen clean every day.
+Giặt, phơi và ủi đồ cẩn thận để quần áo luôn thơm sạch.|Careful washing, drying and ironing to keep your clothes fresh.
+Giặt, phơi, gấp và ủi quần áo cẩn thận để đồ dùng luôn thơm sạch.|Careful washing, drying, folding and ironing to keep your clothes fresh.
+Trông trẻ an tâm với lịch sinh hoạt phù hợp và thân thiện.|Friendly childcare that fits your family's routine.
+Hỗ trợ trông trẻ với lịch sinh hoạt phù hợp và cách giao tiếp thân thiện.|Friendly childcare support that fits your family's routine.
+Quy trình sử dụng|How it works
+Đăng ký và xét duyệt|Apply and get approved
+Cleaner nhận việc, bắt đầu và xác nhận hoàn thành ca.|The cleaner accepts, starts and completes the job.
+Khách chọn dịch vụ, thời gian và địa chỉ; kiểm tra giá trước khi xác nhận đặt lịch.|Choose a service, time and address; check the price before confirming.
+Đặt lịch nhanh chóng|Book quickly
+Nhân sự chuyên nghiệp|Professional staff
+Lịch linh hoạt theo giờ|Flexible hourly scheduling
+Minh bạch thông tin|Transparent information
+An tâm khi sử dụng|Peace of mind
+Tiện lợi cho lịch bận rộn|Convenient for busy schedules
+Hỗ trợ sau dịch vụ|After-service support
+Sẵn sàng trải nghiệm dịch vụ?|Ready to try our services?
+Vì sao nên chọn CleanMate?|Why choose CleanMate?
+Giúp việc chuyên nghiệp, đặt lịch nhanh và dễ theo dõi|Professional home help, quick booking and easy tracking
+Giúp việc chuyên nghiệp, đặt lịch nhanh và rõ ràng chi phí|Professional home help, quick booking and clear prices
+Dịch vụ giúp việc theo giờ đáng tin cậy|Reliable hourly home help
+Dịch vụ giúp việc theo giờ chuyên nghiệp, rõ ràng và đáng tin cậy.|Professional, clear and reliable hourly home help.
+Chỉ cần ba bước để bắt đầu với dịch vụ trên ứng dụng.|Get started with services in just three steps.
+Chỉ cần ba bước để hoàn thành một đơn dịch vụ trên CleanMate.|Complete a CleanMate booking in just three steps.
+Chỉ mất vài phút để chọn dịch vụ, thời gian và địa điểm phù hợp với gia đình bạn.|Choose a service, time and location that suit your family in minutes.
+Chọn dịch vụ và khung giờ chỉ trong vài thao tác đơn giản.|Choose a service and time in a few simple steps.
+Lựa chọn ngày & giờ phù hợp với lịch trình của bạn|Choose a date and time that fit your schedule
+Xác định nhu cầu và thời gian phù hợp ngay trên ứng dụng.|Choose what you need and when in the app.
+Theo dõi công việc và lịch hẹn sau khi đơn được tạo thành công.|Track work and appointments after booking.
+Theo dõi lịch hẹn, giá dịch vụ và trạng thái đơn hàng rõ ràng.|Track appointments, service prices and order status clearly.
+Theo dõi đơn hàng, quản lý hồ sơ và đặt lại dịch vụ chỉ trong vài thao tác.|Track orders, manage your profile and book again in a few steps.
+CleanMate hỗ trợ quy trình rõ ràng, minh bạch chi phí và theo dõi đơn hàng thuận tiện.|CleanMate offers clear steps, transparent pricing and convenient order tracking.
+CleanMate giúp bạn kết nối nhanh với người hỗ trợ phù hợp cho việc dọn dẹp, nấu ăn, giặt ủi và chăm sóc gia đình.|CleanMate connects you with help for cleaning, cooking, laundry and family care.
+CleanMate kết nối khách hàng và cleaner, hỗ trợ đặt lịch và ghi nhận quá trình làm việc.|CleanMate connects customers and cleaners, supports bookings and records work progress.
+Hãy đăng nhập hoặc tạo tài khoản để trải nghiệm đầy đủ dịch vụ|Sign in or create an account to access all services
+Cảm ơn bạn đã tin tưởng CleanMate. Chúng tôi sẽ liên hệ sớm để xác nhận chi tiết.|Thank you for choosing CleanMate. We will contact you soon to confirm the details.
+Cảm ơn bạn đã tin tưởng CleanMate. Chúng tôi sẽ liên hệ trong thời gian sớm nhất để xác nhận chi tiết.|Thank you for choosing CleanMate. We will contact you soon to confirm the details.
+Đội ngũ giúp việc được đào tạo bài bản, có kinh nghiệm thực tế và thái độ phục vụ tốt.|Trained home helpers with practical experience and a helpful attitude.
+Nền tảng được sắp xếp để khách hàng dễ đặt lịch, dễ theo dõi và dễ sử dụng trên cả web lẫn mobile.|Easy booking and tracking on both web and mobile.
+Các nhóm dịch vụ chính đã được tách rõ ràng để dễ theo dõi hơn.|Service categories are clearly organized for easier browsing.
+Các nhóm dịch vụ được hiển thị rõ ràng để người dùng dễ hiểu và dễ thao tác hơn.|Clear service categories make browsing and booking easier.
+Cấu trúc mới giúp phần nội dung gọn hơn, rõ hơn và đồng bộ tiếng Việt.|A clear layout makes content easier to follow.
+Giao diện mobile được tách gọn theo từng tính năng để bạn dễ dùng và đội ngũ dễ bảo trì hơn.|The mobile interface is organized by feature for easier use.
+Đặt lịch ngay để bắt đầu với giao diện mới gọn hơn và nội dung tiếng Việt rõ ràng hơn.|Book now using a clear, easy-to-use interface.
+© 2025 CleanMate. Tất cả quyền được bảo lưu.|© 2025 CleanMate. All rights reserved.
+. Hồ sơ đã xử lý không thể duyệt lại trực tiếp.|. Processed applications cannot be reviewed again directly.
+1. Chấp Nhận Điều Khoản|1. Acceptance of terms
+1. Thông Tin Chúng Tôi Thu Thập|1. Information we collect
+2. Mô Tả Dịch Vụ|2. Service description
+2. Mục Đích Sử Dụng Thông Tin|2. How we use information
+3. Bảo Mật Thông Tin|3. Information security
+3. Đăng Ký Tài Khoản|3. Account registration
+4. Quyền Của Bạn|4. Your rights
+4. Quyền và Nghĩa Vụ Của Khách Hàng|4. Customer rights and responsibilities
+5. Giới Hạn Trách Nhiệm|5. Limitation of liability
+70.000đ/giờ|70,000 VND/hour
+90.000đ/giờ|90,000 VND/hour
+100.000đ/giờ|100,000 VND/hour
+An tâm mỗi ca làm.|Confidence on every job.
+Chủ động công việc.|Take control of your work.
+Báo sự cố lịch làm, chất lượng hoặc tiền mặt trực tiếp. Staff sẽ xem và phản hồi; hệ thống không tự thu/hoàn tiền hay thay đổi trạng thái ca.|Report schedule, quality or direct cash issues. Staff will review and reply; the system does not automatically collect/refund money or change job status.
+Bắt buộc khi yêu cầu bổ sung hoặc từ chối|Required when requesting more information or rejecting
+Bằng việc truy cập và sử dụng dịch vụ CleanMate, bạn đồng ý tuân thủ và bị ràng buộc bởi các điều khoản và điều kiện được nêu trong tài liệu này.|By accessing and using CleanMate services, you agree to follow and be bound by the terms and conditions in this document.
+Chính Sách Bảo Mật|Privacy policy
+Chính Sách Thanh Toán|Payment policy
+Chúng tôi áp dụng các biện pháp bảo mật để bảo vệ thông tin của bạn:|We apply security measures to protect your information:
+Chưa có thông báo.|No notifications yet.
+Chưa có đơn hàng.|No orders yet.
+Chỉ hồ sơ được duyệt mới có quyền nhận việc. Mọi kết quả duyệt được lưu và gửi thông báo cho người đăng ký.|Only approved applicants can accept jobs. Review decisions are saved and applicants are notified.
+CleanMate không chịu trách nhiệm về các thiệt hại gián tiếp, ngẫu nhiên hoặc hậu quả phát sinh từ việc sử dụng dịch vụ. Trách nhiệm của chúng tôi được giới hạn trong phạm vi giá trị dịch vụ đã thanh toán.|CleanMate is not liable for indirect, incidental or consequential damages arising from use of the service. Our liability is limited to the value of the service paid for.
+CleanMate không tự động thu phí hủy lịch hoặc trừ tiền của khách và cleaner.|CleanMate does not automatically charge cancellation fees or deduct money from customers or cleaners.
+CleanMate là nền tảng kết nối khách hàng với các nhân viên giúp việc chuyên nghiệp. Chúng tôi cung cấp:|CleanMate connects customers with professional home helpers. We offer:
+Cung cấp dịch vụ|Provide services
+Cung cấp thông tin chính xác|Provide accurate information
+Cung cấp thông tin cá nhân đang được lưu trữ|Access your stored personal information
+Cải thiện chất lượng|Improve quality
+Cập nhật lần cuối: 15/12/2024|Last updated: 15 December 2024
+Cập nhật lần cuối: 19/09/2025|Last updated: 19 September 2025
+Cập nhật thông tin khi có thay đổi|Update information when it changes
+Cổng quản trị|Admin portal
+Danh mục dịch vụ|Service catalog
+Duyệt hồ sơ|Approve application
+Duyệt hồ sơ đăng ký|Review applications
+Duyệt lúc:|Reviewed at:
+Dành cho cộng tác viên|For cleaners
+Dùng mật khẩu mới ít nhất 12 ký tự. Sau khi lưu, tất cả phiên đăng nhập cũ sẽ hết hiệu lực, gồm cả phiên này.|Use a new password of at least 12 characters. Saving signs out all previous sessions, including this one.
+Dịch vụ & cấu hình giá|Services & price settings
+Dịch vụ chăm sóc trẻ em|Childcare services
+Dịch vụ dọn dẹp nhà cửa theo giờ|Hourly house cleaning
+Dịch vụ giúp việc theo giờ|Hourly home help
+Dịch vụ giặt ủi quần áo|Laundry & ironing services
+Dịch vụ nấu ăn và rửa bát|Cooking & dishwashing services
+Dịch vụ:|Service:
+Giá dịch vụ do CleanMate cấu hình. Khách thanh toán tiền mặt trực tiếp sau ca.|CleanMate sets service rates. Customers pay directly in cash after the job.
+Giá mỗi giờ (VNĐ)|Hourly rate (VND)
+Giá mới chỉ áp dụng cho đơn tạo sau thay đổi. Đơn đã đặt giữ nguyên giá.|New prices apply only to orders created after the change. Existing orders keep their booked prices.
+Giá trị dịch vụ hoàn thành|Completed service value
+Giám sát 24/7|24/7 monitoring
+Giới thiệu:|About:
+Gửi thông tin khuyến mãi (chỉ khi có sự đồng ý)|Send promotions (only with consent)
+HT, CM, tên hoặc email|Support ID, CM ID, name or email
+Hai bên nên giữ thông tin mã đơn, thời gian làm việc và nội dung trao đổi để đối chiếu. Khách có thể ghi nhận đánh giá trung thực trên đơn hàng.|Both parties should retain the order ID, working times and communications for reference. Customers can leave an honest order review.
+Hiển thị tối đa 50 mục mỗi trang.|Showing up to 50 items per page.
+Hồ sơ cleaner và yêu cầu hỗ trợ cần xử lý. Mở một thông báo không tự đánh dấu đã đọc.|Cleaner applications and support requests needing attention. Opening a notification does not automatically mark it as read.
+Hồ sơ cần được nhân viên duyệt trước khi nhận việc.|Staff must approve your application before you can accept jobs.
+Khiếu nại khi dịch vụ không đạt yêu cầu|Report services that do not meet expectations
+Khoản hoàn trả tiền mặt, nếu có, được thực hiện trực tiếp giữa hai bên. CleanMate không có khoản tiền đã thu để hoàn lại qua hệ thống.|Any cash refund is handled directly between the parties. CleanMate has not collected money to refund through the system.
+Khu vực:|Area:
+Khách có thể hủy trên hệ thống khi đơn đang chờ nhận, chưa có cleaner phụ trách và chưa đến giờ bắt đầu. Đơn đã có cleaner nhận cần được trao đổi với cleaner để xử lý thay đổi.|Customers can cancel before the start time while an order awaits acceptance. Once accepted, discuss changes with the cleaner.
+Khách trả tiền mặt trực tiếp cho cleaner. Đây là tổng giá trị các ca đã hoàn thành; CleanMate không thu hoặc giữ khoản tiền này.|Customers pay the cleaner directly in cash. This is the total value of completed jobs; CleanMate does not collect or hold this money.
+Khách trả tiền trực tiếp cho bạn. Đây là tổng tiền bạn tự xác nhận đã nhận, không phải số dư hay khoản app sẽ chuyển.|Customers pay you directly. This is the total you declared receiving, not a balance or transfer due from the app.
+Khách đã xác nhận · Đánh giá:|Customer confirmed · Rating:
+Khóa tài khoản sẽ chặn cả phiên đăng nhập đang tồn tại ở API.|Locking an account also blocks its existing API sessions.
+Khôi phục tài khoản.|Recover your account.
+Không có yêu cầu phù hợp.|No matching requests.
+Không có dữ liệu phù hợp.|No matching data.
+Không gian cộng tác viên|Cleaner workspace
+Không gian làm việc dành cho đội ngũ CleanMate. Duyệt hồ sơ, theo dõi ca làm và quản lý dịch vụ tại một nơi.|A workspace for the CleanMate team. Review applications, track jobs and manage services in one place.
+Không gian quản trị|Management workspace
+Không thể kết nối. Kiểm tra API và thử lại.|Unable to connect. Check the API and try again.
+Không tải được dữ liệu. Bạn có thể thử lại.|Unable to load data. You can try again.
+Kiểm soát truy cập|Access control
+Kết quả|Decision
+Lý do / Ghi chú|Reason / Notes
+Lưu cấu hình|Save settings
+Lưu kết quả duyệt|Save review decision
+Lưu phân công|Save assignment
+Lưu xử lý|Save resolution
+Lịch sử quản trị|Management history
+Lọc hỗ trợ|Filter support requests
+Lọc kết quả|Filter results
+Lọc công việc|Filter jobs
+Mã chỉ dùng một lần, có hiệu lực 30 phút. Không chia sẻ mã cho người khác.|Single-use code, valid for 30 minutes. Do not share it with others.
+Mã hóa SSL/TLS|SSL/TLS encryption
+Mật khẩu ban đầu|Initial password
+Mật khẩu tối thiểu 12 ký tự, tối đa 72 byte UTF-8. Phiên cũ sẽ bị thu hồi.|Use at least 12 characters and at most 72 UTF-8 bytes. Previous sessions will be revoked.
+Mọi hoạt động trong tầm nhìn.|All activity at a glance.
+Mục lục|Contents
+Nghĩa vụ của khách hàng:|Customer responsibilities:
+Người hỗ trợ được phân công theo nhu cầu thực tế của khách hàng.|Helpers are assigned based on the customer's actual needs.
+Người phụ trách|Assignee
+Người phụ trách cũ không còn hoạt động. Chọn người mới hoặc bỏ phân công.|The previous assignee is inactive. Choose another person or clear the assignment.
+Người phụ trách theo dõi yêu cầu; đội ngũ vẫn có thể cùng hỗ trợ trả lời.|The assignee follows up the request; other team members can still help reply.
+Nhân sự Staff|Staff accounts
+Nhận dịch vụ chất lượng theo đúng cam kết|Receive services that meet the agreed quality
+Nhận hỗ trợ|Get support
+Nhận việc phù hợp, theo dõi lịch làm và quản lý hồ sơ của bạn.|Find suitable jobs, track your schedule and manage your profile.
+Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng không sử dụng dịch vụ của chúng tôi.|If you disagree with any part of these terms, please do not use our services.
+Nếu có vấn đề về chất lượng hoặc số tiền đã giao nhận, khách và cleaner trao đổi trực tiếp để thống nhất cách xử lý.|For issues with quality or money exchanged, the customer and cleaner discuss a resolution directly.
+Phân quyền vận hành|Operations permissions
+Phân tích dữ liệu để nâng cao trải nghiệm người dùng|Analyze data to improve the user experience
+Phản hồi|Response
+Phản hồi:|Response:
+Phụ trách:|Assigned to:
+Quyền của khách hàng:|Customer rights:
+Quản lý dịch vụ.|Manage services.
+Staff được duyệt hồ sơ và tra cứu đơn. Thay đổi giá và quản lý nhân sự dành cho Admin.|Staff can review applications and look up orders. Only admins can change prices and manage staff.
+Sẵn sàng cho ca làm tiếp theo|Ready for your next job
+Số giờ tối thiểu|Minimum hours
+Số giờ tối đa|Maximum hours
+Số liệu thực từ hệ thống CleanMate · Hôm nay theo UTC+7.|Live CleanMate data · Today uses UTC+7.
+Sử dụng tài khoản Admin hoặc Staff được cấp.|Use your assigned admin or staff account.
+Sửa cấu hình|Edit settings
+Cho phép đặt dịch vụ|Allow service bookings
+Tìm kiếm|Search
+Tìm yêu cầu|Find requests
+Thanh toán đầy đủ và đúng hạn|Pay in full and on time
+Theo dõi trạng thái, lịch và thông tin liên hệ. Thanh toán tiền mặt được ghi nhận theo xác nhận của cleaner.|Track status, schedules and contact details. Cash receipts reflect the cleaner's declaration.
+Thông báo cũ hơn|Older notifications
+Thông báo ngay khi phát hiện tài khoản bị xâm phạm|Report suspected account compromise immediately
+Thông báo vận hành|Operations notifications
+Thông tin quan trọng về việc sử dụng dịch vụ CleanMate|Important information about using CleanMate services
+Thống kê thu nhập|Earnings statistics
+Tin bổ sung của người báo sẽ mở lại yêu cầu đã giải quyết. Nhân viên cần mở lại yêu cầu trước khi trả lời yêu cầu đã đóng.|A new requester message reopens a resolved request. Staff must reopen closed requests before replying.
+Tiếp nhận sự cố của khách và cleaner. Phản hồi không tự thay đổi đơn, xác nhận tiền hay hoàn tiền.|Handle customer and cleaner issues. Responses do not automatically change orders, confirm payment or refund money.
+Tra cứu vận hành|Operations lookup
+Trạng thái hỗ trợ|Support status
+Trạng thái mới|New status
+Trạng thái đơn hàng|Order status
+Tuân thủ các quy định an toàn|Follow safety rules
+Tài khoản chỉ đăng nhập Google tiếp tục khôi phục qua Google.|Google-only accounts recover through Google.
+Tài khoản quản trị không được tạo qua đăng ký công khai.|Management accounts cannot be created through public registration.
+Tên dịch vụ|Service name
+Tôn trọng nhân viên dịch vụ|Treat service staff respectfully
+Tường lửa bảo mật|Security firewall
+Tạo Staff|Create staff account
+Tổng quan vận hành|Operations overview
+Từ chối nhận email marketing|Opt out of marketing emails
+Vận hành rõ ràng.|Clear operations.
+Xem cũ hơn|View older
+Xem danh sách đơn →|View order list →
+Xóa thông tin cá nhân|Delete personal information
+Xử lý đơn hàng, điều phối nhân viên, liên lạc với khách hàng|Process orders, coordinate staff and contact customers
+Xử lý yêu cầu|Handle request
+Yêu cầu bổ sung|Request more information
+ca hoàn thành|completed jobs
+thông báo chưa đọc.|unread notifications.
+tài khoản khách hàng.|customer account.
+Đang tải dữ liệu...|Loading data...
+Đang tải trạng thái email...|Loading email status...
+Điều Khoản & Chính Sách|Terms & policies
+Điều Khoản Dịch Vụ|Terms of service
+Điều Khoản Sử Dụng|Terms of use
+Điều khoản & Chính sách - CleanMate|Terms & policies - CleanMate
+Đăng xuất tất cả thiết bị, gồm cả thiết bị này. Mật khẩu không thay đổi. Bạn có thể dùng chức năng này khi đăng nhập bằng Google.|Sign out all devices, including this one. Your password stays the same. Also available when signed in with Google.
+Đơn hàng & ca làm|Orders & jobs
+Được bảo vệ thông tin cá nhân|Your personal information is protected
+Để sử dụng dịch vụ, bạn cần tạo tài khoản với thông tin chính xác và đầy đủ. Bạn có trách nhiệm:|To use the service, create an account with accurate and complete information. You are responsible for:
+Đội ngũ cleaner|Cleaner team
+• Giá:|• Price:
+• Họ tên, số điện thoại|• Full name, phone number
+• Lịch sử đặt dịch vụ|• Booking history
+• Thiết bị sử dụng|• Device information
+• Thông tin xác nhận nhận tiền mặt|• Declared cash receipt information
+• Thời gian truy cập|• Access times
+• Địa chỉ IP|• IP address
+• Địa chỉ email|• Email address
+• Địa chỉ nhà|• Home address
+⚖️ Điều khoản dịch vụ|⚖️ Terms of service
+💵 Chính sách thanh toán|💵 Payment policy
+📋 Điều khoản sử dụng|📋 Terms of use
+🔄 Hỗ trợ sau dịch vụ|🔄 After-service support
+🔒 Chính sách bảo mật|🔒 Privacy policy
+Ca đã nhận / đang làm, sắp theo thời gian. Ngày theo giờ Việt Nam.|Accepted / active jobs in chronological order. Dates use Vietnam time.
+Trang|Page
+Nếu tài khoản phù hợp, mã sẽ được gửi đến email đã đăng ký. Kiểm tra cả thư rác; chỉ yêu cầu lại sau 2 phút.|If the account is eligible, a code will be sent to its registered email. Check your spam folder; wait 2 minutes before requesting another.
+Mã không hợp lệ, đã dùng hoặc đã hết hạn. Vui lòng yêu cầu mã mới.|The code is invalid, used or expired. Please request a new one.
+Gửi email hiện chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.|Email delivery is currently unavailable. Please try later or contact support.
+Vui lòng nhập email hợp lệ.|Please enter a valid email.
+Mật khẩu mới cần ít nhất 12 ký tự và tối đa 72 byte UTF-8.|New passwords require at least 12 characters and at most 72 UTF-8 bytes.
+Chọn mật khẩu mới khác mật khẩu hiện tại.|Choose a new password different from your current one.
+Mật khẩu đã được đặt lại|Password reset
+Mật khẩu vừa được khôi phục bằng mã email. Các phiên đăng nhập cũ đã hết hiệu lực.|Your password was reset using an email code. Previous sign-in sessions have been revoked.
+Đã đặt lại mật khẩu và thu hồi phiên cũ. Vui lòng đăng nhập bằng mật khẩu mới.|Password reset and previous sessions revoked. Please sign in using your new password.
+Email đã được xác minh|Email verified
+Email đăng ký của bạn đã được xác minh thành công.|Your registered email has been verified successfully.
+Đã xác minh email. Bạn có thể tải lại hồ sơ để xem trạng thái.|Email verified. Refresh your profile to see its status.
+Don hang da dat|Booked orders
+Dang tai don hang...|Loading orders...
+Khong the tai du lieu|Unable to load data
+Ban chua co don hang nao.|You have no orders yet.
+Ma don|Order ID
+Ngay bat dau|Start date
+Dia chi|Address
+Gia|Price
+Thanh toan|Payment
+Trang thai|Status
+Hanh dong|Action
+sao|stars
+/5 sao|/5 stars
+CN|Sun
+T2|Mon
+T3|Tue
+T4|Wed
+T5|Thu
+T6|Fri
+T7|Sat
