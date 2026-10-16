@@ -139,9 +139,22 @@ build/native findings. Backend build zero warnings, 189 integration tests pass;
 temporary database cleanup markers verified. Final 48 React tests pass. iOS
 exports pass 1369/1332 modules. Removed runtime Tailwind CDN dependency and
 verified actual grid/flex styles and mobile navigation at 320/768/1024px.
-Ready to publish. No APK/device validation yet.
+Published/merged all six repos; remote main SHAs verified. No APK/device validation yet.
 
 Next: public footer has dead service buttons and placeholder contact details;
 policy tab query changes are not synchronized with displayed state. Fix public
 navigation, then prepare native build/device validation. Android acceleration
 works (WHPX), SDK 35/36 images exist, but avdmanager is not installed.
+
+## Batch 7: public-navigation
+
+Web/backend documentation branches. Fixed dead footer service/contact actions,
+placeholder contact details and policy query/history synchronization. Constrained
+long names and compact signed-in header for 320px phones. Final web build, 48
+React tests and 70 Playwright cases pass; no failures/skips/flaky and DB cleaned.
+See PUBLIC_NAVIGATION.md. Ready to publish.
+
+Native build work has started separately in mobile/cleaner-mobile on
+native-build-readiness. Production/validation identifiers and transport policy
+are introspection-verified. Debug APK attempt is downloading Gradle 8.14.3;
+no APK/emulator UI result yet. Generated android directories stay ignored.
