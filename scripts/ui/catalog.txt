@@ -893,3 +893,17 @@ T5|Thu
 T6|Fri
 T7|Sat
 Khóa hoặc mở quyền truy cập sẽ thu hồi các phiên cũ. Staff cần đăng nhập lại sau khi được mở khóa.|Locking or unlocking access revokes previous sessions. Staff must sign in again after being unlocked.
+Quản lý tài khoản khách và cleaner|Manage customer and cleaner accounts
+Chỉ Admin được khóa/mở tài khoản. Mỗi thay đổi thu hồi phiên cũ; mở khóa yêu cầu đăng nhập lại. Khóa không hủy đơn hoặc thay đổi tiền mặt.|Only admins can lock/unlock accounts. Each change revokes previous sessions; unlocking requires a new sign-in. Locking does not cancel orders or change cash records.
+Tìm tài khoản|Find accounts
+Tên, email, số điện thoại hoặc ID|Name, email, phone number or ID
+Khách hàng|Customer
+Lọc tài khoản|Filter accounts
+Thay đổi truy cập tài khoản|Change account access
+Khóa/mở sẽ thu hồi các phiên đăng nhập cũ. Khóa không tự hủy các đơn đã đặt hoặc đã nhận.|Locking/unlocking revokes previous sessions. Locking does not automatically cancel booked or accepted orders.
+Tài khoản còn đơn chưa kết thúc. Kiểm tra lịch và liên hệ hai bên để xử lý các ca trước khi khóa.|This account has unfinished orders. Check the schedule and contact both parties to handle these jobs before locking.
+Lý do thay đổi truy cập|Reason for access change
+Tôi xác nhận thay đổi quyền truy cập|I confirm the access change
+Lý do thay đổi truy cập cần từ 10 đến 1000 ký tự.|The reason for changing access must contain 10 to 1000 characters.
+Chỉ Admin được quản lý tài khoản khách và cleaner.|Only admins can manage customer and cleaner accounts.
+Tài khoản đã thay đổi. Danh sách đã được tải lại.|The account changed. The list has been refreshed.

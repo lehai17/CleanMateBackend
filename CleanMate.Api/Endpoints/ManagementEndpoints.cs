@@ -34,6 +34,7 @@ public static class ManagementEndpoints
             return await next(context);
         });
         SupportEndpoints.MapManagementSupport(group);
+        group.MapAccountManagement();
         group.MapGet("/dashboard", async (AppDbContext db) =>
         {
             var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;
