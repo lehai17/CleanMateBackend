@@ -152,9 +152,30 @@ Web/backend documentation branches. Fixed dead footer service/contact actions,
 placeholder contact details and policy query/history synchronization. Constrained
 long names and compact signed-in header for 320px phones. Final web build, 48
 React tests and 70 Playwright cases pass; no failures/skips/flaky and DB cleaned.
-See PUBLIC_NAVIGATION.md. Ready to publish.
+See PUBLIC_NAVIGATION.md. Published/merged backend and web; remote main verified.
 
 Native build work has started separately in mobile/cleaner-mobile on
 native-build-readiness. Production/validation identifiers and transport policy
 are introspection-verified. Debug APK attempt is downloading Gradle 8.14.3;
 no APK/emulator UI result yet. Generated android directories stay ignored.
+
+## Batch 8: native-build-readiness (in progress)
+
+Branches backend/mobile/cleaner-mobile. Added customer package/bundle IDs and
+separate validation variant IDs/deep links, release transport defaults, guarded
+local test API URL and prebuild-before-run wrappers. Real Expo native-config
+introspection passes both variants/platforms; test API guards reject missing or
+external URLs. Android prebuild both apps passes; Node suites 12/15 pass.
+Start-TestEmulator.ps1 created a new AOSP API35 x86_64 AVD under obj; emulator-5580
+is booted, AVD CleanMateTest_8fffb2b1d5. Stop only that recorded AVD via
+Stop-TestEmulator.ps1 after work. Never touch existing AVDs/physical devices.
+Gradle 8.14.3 downloaded successfully; customer assembleDebug session 20188 is
+compiling. No APK installed and no native API test-host instance started yet.
+Need finish native build, validate app UI if possible, stop own emulator, update
+docs accurately, commit/push/merge native-build-readiness. No release deployment.
+
+Update: emulator was safely stopped via Stop-TestEmulator.ps1 to free RAM while
+Gradle compiles. Both start/stop scripts tested. Do not assume emulator-5580 is
+still running. State JSON retains the recorded AVD for possible restart. Final
+validation variant Android/iOS exports pass 1376/1369 and 1331/1332 modules.
+Config feature is ready to publish separately from the ongoing APK validation.

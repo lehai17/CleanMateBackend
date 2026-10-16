@@ -1,9 +1,19 @@
 # CleanMate: trạng thái và phần còn thiếu
 
-Rà soát mã nguồn ngày 16/10/2026. Tài liệu phản ánh các repository local;
+Rà soát mã nguồn ngày 17/10/2026. Tài liệu phản ánh các repository local;
 không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản app đã phát hành.
 
 ## Đã có
+
+- CSS web được build trong project, không dùng Tailwind CDN; menu cho điện thoại/
+  tablet, liên kết dịch vụ/hỗ trợ hoạt động và chính sách đồng bộ URL/Back/Reload.
+  Xem [PUBLIC_NAVIGATION.md](PUBLIC_NAVIGATION.md).
+- Cấu hình native production/validation riêng, kiểm tra package/deep link, HTTP
+  cho API test và sáng/tối tự động. Đây chưa phải xác nhận APK/IPA hay UI thiết bị.
+  Xem [NATIVE_BUILD_READINESS.md](NATIVE_BUILD_READINESS.md).
+- Đã cập nhật dependency tương thích; NuGet và runtime web không báo advisory,
+  các cảnh báo build/native còn lại được liệt kê trong
+  [DEPENDENCY_HARDENING.md](DEPENDENCY_HARDENING.md).
 
 - Chọn tiếng Việt/Anh và Sáng/Tối/Theo thiết bị trên cả năm client, lưu lựa chọn
   trên thiết bị và giữ nội dung đang nhập. Xem [UI_PREFERENCES.md](UI_PREFERENCES.md).
