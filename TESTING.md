@@ -8,7 +8,7 @@ Authentication throttling and proxy/password-bound checks are documented in
 an isolated SQL database and low limits; functional suites use higher limits.
 
 Verified on 17 October 2026: 189 backend tests passed; build completed with zero
-warnings/errors. The companion suites passed 48 frontend tests, 64 customer-web
+warnings/errors. The companion suites passed 48 frontend tests, 70 customer-web
 Playwright cases, 46 admin Playwright cases, 36 cleaner-web Playwright cases,
 14 cleaner-web Node tests, 15 cleaner-mobile tests and 10 admin Node tests.
 
