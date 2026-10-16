@@ -14,6 +14,7 @@ public static class ApiApplication
         app.UseCleanMateApi();
         app.MapPublicEndpoints();
         app.MapAuthEndpoints();
+        app.MapAccountRecovery();
         app.MapProfileEndpoints();
         app.MapBookingEndpoints();
         app.MapCleanerJobEndpoints();

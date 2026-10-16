@@ -150,6 +150,11 @@ public class AuthService
             await db.SaveChangesAsync();
         }
 
+        if (user.IsActive && user.EmailVerifiedAt is null)
+        {
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
         return !user.IsActive ? null : _jwtTokenService.CreateAuthResponse(user, _currentUserService.MapUser(user));
     }
 

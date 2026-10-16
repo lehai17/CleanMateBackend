@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using System.Security.Claims;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CleanMate.Api.Extensions;
 
@@ -51,6 +52,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CurrentUserService>();
         services.AddScoped<AuthService>();
         services.AddSingleton<JwtTokenService>();
+        services.TryAddSingleton<IAccountEmail, SmtpAccountEmail>();
+        services.AddSingleton<AccountEmailQueue>();
+        services.AddHostedService<AccountEmailWorker>();
         services.AddControllers();
 
         return services;

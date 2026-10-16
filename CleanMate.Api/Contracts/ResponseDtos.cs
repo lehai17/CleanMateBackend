@@ -18,7 +18,8 @@ public record UserResponseDto(
     string? PhoneNumber,
     string? Address,
     bool IsCleaner,
-    CleanerProfileResponseDto? CleanerProfile);
+    CleanerProfileResponseDto? CleanerProfile,
+    DateTime? EmailVerifiedAt = null);
 
 public record AuthResponseDto(
     string Token,
