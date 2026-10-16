@@ -21,6 +21,7 @@ export function translate(value, language = 'vi') {
   if (match) return `${match[1]} unread notifications`;
   const templates = [
     [/^Trang (\d+) · (\d+) yêu cầu$/, 'Page $1 · $2 requests'],
+    [/^(\d+) kết quả · Trang (\d+)$/, '$1 results · Page $2'],
     [/^Đã gửi yêu cầu HT(\d+)\.$/, 'Support request HT$1 sent.'],
     [/^Phân công HT(\d+)$/, 'Assign support request HT$1'],
     [/^Xử lý HT(\d+)$/, 'Handle support request HT$1'],

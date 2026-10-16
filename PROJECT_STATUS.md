@@ -19,6 +19,9 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
   hoàn thành, xác nhận tiền mặt, lọc lịch/công việc và liên hệ khách.
 - Web Admin/Staff riêng: dashboard, duyệt cleaner, cấu hình giá, tra cứu đơn,
   quản lý Staff và nhật ký thao tác.
+- Admin quản lý tài khoản khách/cleaner: tìm/lọc, khóa/mở có lý do và xác nhận,
+  thu hồi phiên cũ, hiển thị ca chưa kết thúc; giữ nguyên lịch sử đơn và tiền mặt.
+  Xem [ACCOUNT_MODERATION.md](ACCOUNT_MODERATION.md).
 - Thông báo trong ứng dụng, trạng thái đã đọc, phân trang và mở đúng khu vực.
 - Admin/Staff có hộp thông báo, số chưa đọc và mở đúng hồ sơ/yêu cầu; nhận báo
   khi cleaner gửi/gửi lại hồ sơ, có yêu cầu hỗ trợ hoặc người báo gửi thêm tin.

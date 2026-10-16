@@ -68,6 +68,25 @@ checks pass in all 34 admin Playwright cases. Full backend suite passed 176/176;
 solution build has zero warnings/errors. Admin Node tests pass 9/9 and its test
 database cleanup marker is verified. Ready to publish backend/admin only.
 
+Staff-session-revocation was pushed/merged to main in backend and admin, and remote
+main SHAs verified. New backend/admin branch: account-moderation.
+
+## Batch 4: account-moderation
+
+Admin-only customer/cleaner listing/filtering/search/pagination and reasoned access
+changes, with expected-state checks, permanent revocation and atomic audit. No
+booking or cash state changes. UI shows unfinished work, requires confirmation,
+keeps private content unchanged and refreshes stale forms. No schema change.
+Final full runs passed 189 backend and 42 admin browser cases, 9 admin Node
+tests; build zero warnings/errors. Private account responses use no-store.
+Admin browser cleanup marker verified. Ready to publish backend/admin only.
+See ACCOUNT_MODERATION.md. No production accounts modified during tests.
+
+Next priority found during review: stale 401/profile responses can clear or
+overwrite a newer web/native login; customer web/native restore also discards
+credentials on network failures. Add guarded session restoration and retry UI
+after publishing this batch. Preserve language/theme preferences on logout.
+
 Next priorities after this batch: private cleaner verification documents/review,
 incident evidence/operational safeguards, push readiness, legacy role cleanup,
 deployment/device validation preparations. Reassess source and tests each batch.
