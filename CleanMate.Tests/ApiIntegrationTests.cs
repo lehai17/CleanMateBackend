@@ -100,6 +100,101 @@ public class ApiIntegrationTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private const string Password = "CleanMate-test-123!";
 
+    private static async Task<int> Report(HttpClient reporter,int bookingId)
+    {
+        var response=await reporter.PostAsJsonAsync("/api/support",new{bookingId,category="Other",description="Cần hỗ trợ cho công việc đã đặt.",requestId=Guid.NewGuid()});
+        Assert.Equal(HttpStatusCode.OK,response.StatusCode);return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    [Fact]
+    public async Task Failed_reply_notification_rolls_back_message_audit_and_ticket_version()
+    {
+        var account=await Register();using var owner=fixture.Client(account.Token);using var staff=fixture.Client((await Staff()).Token);var ticket=await Report(owner,await Create(owner));
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var trigger="RejectSupportMessage_"+Guid.NewGuid().ToString("N");
+        var sql=$"CREATE TRIGGER [{trigger}] ON [Notifications] AFTER INSERT AS BEGIN IF EXISTS (SELECT 1 FROM inserted WHERE UserId={account.Id} AND EventKey LIKE 'SupportMessage:%') THROW 51000, 'Test notification failure', 1; END";
+        await db.Database.ExecuteSqlRawAsync(sql);var path=$"/api/management/support/{ticket}/messages";var payload=new{body="A reply that must be saved atomically.",requestId=Guid.NewGuid()};
+        try{Assert.Equal(HttpStatusCode.InternalServerError,(await staff.PostAsJsonAsync(path,payload)).StatusCode);Assert.False(await db.SupportMessages.AnyAsync(m=>m.TicketId==ticket));Assert.False(await db.AdminAudits.AnyAsync(a=>a.Target==$"Support:{ticket}"&&a.Action=="ReplySupport"));Assert.Equal(1,(await db.SupportTickets.AsNoTracking().SingleAsync(t=>t.Id==ticket)).Version);}
+        finally{var dropSql=$"DROP TRIGGER [{trigger}]";await db.Database.ExecuteSqlRawAsync(dropSql);}
+        Assert.Equal(HttpStatusCode.OK,(await staff.PostAsJsonAsync(path,payload)).StatusCode);Assert.Equal(1,await db.SupportMessages.CountAsync(m=>m.TicketId==ticket));Assert.Equal(2,(await db.SupportTickets.AsNoTracking().SingleAsync(t=>t.Id==ticket)).Version);
+    }
+
+    [Theory]
+    [InlineData("Customer")]
+    [InlineData("Cleaner")]
+    public async Task Support_conversation_is_private_to_reporter_and_managers(string role)
+    {
+        var customer=await Register();var cleaner=await Register("Cleaner");var manager=await Staff();
+        using var owner=fixture.Client(customer.Token);using var worker=fixture.Client(cleaner.Token);using var staff=fixture.Client(manager.Token);using var guest=fixture.Client();
+        var bookingId=await Create(owner);Assert.Equal(HttpStatusCode.OK,(await worker.PutAsync($"/api/cleaner/jobs/{bookingId}/accept",null)).StatusCode);
+        var reporter=role=="Cleaner"?worker:owner;var other=role=="Cleaner"?owner:worker;var reporterId=role=="Cleaner"?cleaner.Id:customer.Id;
+        var ticket=await Report(reporter,bookingId);var path=$"/api/support/{ticket}/messages";var managed=$"/api/management/support/{ticket}/messages";
+        Assert.Equal(HttpStatusCode.Unauthorized,(await guest.GetAsync(path)).StatusCode);Assert.Equal(HttpStatusCode.NotFound,(await other.GetAsync(path)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,(await reporter.GetAsync(managed)).StatusCode);
+        var payload=new{body="<script>private message</script>",requestId=Guid.NewGuid(),fromStaff=true,authorId=manager.Id};
+        Assert.Equal(HttpStatusCode.NotFound,(await other.PostAsJsonAsync(path,payload)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await reporter.PostAsJsonAsync(path,payload)).StatusCode);
+        var history=await staff.GetFromJsonAsync<JsonElement>(managed);var first=history.GetProperty("items")[0];Assert.False(first.GetProperty("fromStaff").GetBoolean());Assert.Equal(payload.body,first.GetProperty("body").GetString());Assert.EndsWith("Z",first.GetProperty("createdAt").GetString());Assert.False(first.TryGetProperty("authorId",out _));
+        var reply=await staff.PostAsJsonAsync(managed,new{body="Nhân viên đang kiểm tra thông tin.",requestId=Guid.NewGuid()});Assert.Equal(HttpStatusCode.OK,reply.StatusCode);
+        var messageId=(await reply.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        history=await reporter.GetFromJsonAsync<JsonElement>(path);Assert.Equal(2,history.GetProperty("items").GetArrayLength());Assert.True(history.GetProperty("items")[1].GetProperty("fromStaff").GetBoolean());
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();Assert.Equal(1,await db.Notifications.CountAsync(n=>n.UserId==reporterId&&n.EventKey==$"SupportMessage:{messageId}"));
+        Assert.Equal("Accepted",(await db.Bookings.FindAsync(bookingId))!.Status);Assert.False(await db.Payments.AnyAsync(p=>p.BookingId==bookingId));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Concurrent_message_retries_keep_one_message_audit_and_notification(bool management)
+    {
+        var account=await Register();using var owner=fixture.Client(account.Token);var ticket=await Report(owner,await Create(owner));var sender=management?await Staff():account;using var client=fixture.Client(sender.Token);
+        var path=$"/api/{(management?"management/":"")}support/{ticket}/messages";var payload=new{body="Thông tin bổ sung không được gửi trùng.",requestId=Guid.NewGuid()};
+        var responses=await Task.WhenAll(client.PostAsJsonAsync(path,payload),client.PostAsJsonAsync(path,payload));foreach(var response in responses)Assert.Equal(HttpStatusCode.OK,response.StatusCode);
+        var ids=await Task.WhenAll(responses.Select(async r=>(await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32()));Assert.Equal(ids[0],ids[1]);
+        Assert.Equal(HttpStatusCode.Conflict,(await client.PostAsJsonAsync(path,new{body="Different content",payload.requestId})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1,await db.SupportMessages.CountAsync(m=>m.TicketId==ticket));Assert.Equal(2,(await db.SupportTickets.FindAsync(ticket))!.Version);
+        var audit=await db.AdminAudits.SingleAsync(a=>a.Target==$"Support:{ticket}"&&a.Action=="ReplySupport");Assert.DoesNotContain(payload.body,audit.Details);
+        Assert.Equal(management?1:0,await db.Notifications.CountAsync(n=>n.UserId==account.Id&&n.EventKey==$"SupportMessage:{ids[0]}"));
+    }
+
+    [Fact]
+    public async Task Reporter_reopens_resolved_support_and_stale_staff_updates_cannot_overwrite_it()
+    {
+        using var owner=fixture.Client((await Register()).Token);using var staff=fixture.Client((await Staff()).Token);var bookingId=await Create(owner);var ticket=await Report(owner,bookingId);var path=$"/api/management/support/{ticket}";
+        const string resolution="Đã hướng dẫn kiểm tra lại thông tin.";
+        Assert.Equal(HttpStatusCode.OK,(await staff.PutAsJsonAsync(path,new{status="Resolved",response=resolution,version=1})).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,(await staff.PostAsJsonAsync(path+"/messages",new{body="Reply while closed",requestId=Guid.NewGuid()})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await owner.PostAsJsonAsync($"/api/support/{ticket}/messages",new{body="Vấn đề vẫn chưa được giải quyết.",requestId=Guid.NewGuid()})).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,(await staff.PutAsJsonAsync(path,new{status="Resolved",response=resolution,version=2})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();var record=(await db.SupportTickets.FindAsync(ticket))!;
+        Assert.Equal("Open",record.Status);Assert.Equal(3,record.Version);Assert.Equal(resolution,record.Response);
+        Assert.Equal(2,await db.SupportMessages.CountAsync(m=>m.TicketId==ticket));Assert.Equal("Pending",(await db.Bookings.FindAsync(bookingId))!.Status);Assert.False(await db.Payments.AnyAsync(p=>p.BookingId==bookingId));
+    }
+
+    [Fact]
+    public async Task Conversation_pages_have_no_duplicates_or_other_tickets()
+    {
+        var account=await Register();using var owner=fixture.Client(account.Token);var bookingId=await Create(owner);var ticket=await Report(owner,bookingId);var other=await Report(owner,bookingId);
+        using(var scope=fixture.Api.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();for(var i=0;i<25;i++)db.SupportMessages.Add(new CleanMate.Api.Domain.Entities.SupportMessage{TicketId=ticket,AuthorId=account.Id,RequestId=Guid.NewGuid(),Body=$"Message {i}"});db.SupportMessages.Add(new CleanMate.Api.Domain.Entities.SupportMessage{TicketId=other,AuthorId=account.Id,RequestId=Guid.NewGuid(),Body="Other ticket"});await db.SaveChangesAsync();}
+        var path=$"/api/support/{ticket}/messages";var first=await owner.GetFromJsonAsync<JsonElement>(path);Assert.Equal(20,first.GetProperty("items").GetArrayLength());var cursor=first.GetProperty("nextBeforeId").GetInt32();
+        var second=await owner.GetFromJsonAsync<JsonElement>(path+$"?beforeId={cursor}");Assert.Equal(5,second.GetProperty("items").GetArrayLength());Assert.Equal(JsonValueKind.Null,second.GetProperty("nextBeforeId").ValueKind);
+        var all=first.GetProperty("items").EnumerateArray().Concat(second.GetProperty("items").EnumerateArray()).ToArray();Assert.Equal(25,all.Select(m=>m.GetProperty("id").GetInt32()).Distinct().Count());Assert.DoesNotContain(all,m=>m.GetProperty("body").GetString()=="Other ticket");
+        Assert.Equal(HttpStatusCode.BadRequest,(await owner.GetAsync(path+"?beforeId=0")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Message_validation_and_per_account_rate_limits_prevent_spam()
+    {
+        var account=await Register();using var owner=fixture.Client(account.Token);var ticket=await Report(owner,await Create(owner));var path=$"/api/support/{ticket}/messages";
+        foreach(var body in new[]{"",new string('x',2001)})Assert.Equal(HttpStatusCode.BadRequest,(await owner.PostAsJsonAsync(path,new{body,requestId=Guid.NewGuid()})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await owner.PostAsJsonAsync(path,new{body="Valid body",requestId=Guid.Empty})).StatusCode);
+        for(var i=3;i<20;i++)Assert.Equal(HttpStatusCode.BadRequest,(await owner.PostAsJsonAsync(path,new{body="",requestId=Guid.NewGuid()})).StatusCode);
+        var limited=await owner.PostAsJsonAsync(path,new{body="Valid body",requestId=Guid.NewGuid()});Assert.Equal(HttpStatusCode.TooManyRequests,limited.StatusCode);Assert.True(limited.Headers.Contains("Retry-After"));
+        using var other=fixture.Client((await Register()).Token);Assert.Equal(HttpStatusCode.NotFound,(await other.PostAsJsonAsync(path,new{body="Different account",requestId=Guid.NewGuid()})).StatusCode);
+        using var scope=fixture.Api.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();Assert.False(await db.SupportMessages.AnyAsync(m=>m.TicketId==ticket));Assert.Equal(1,(await db.SupportTickets.FindAsync(ticket))!.Version);
+    }
+
     private async Task<WebApplication> LimitedAuthHost(int limit=2,int seconds=300,bool trustLoopback=true)
     {
         var host=ApiApplication.Build([],builder=>{

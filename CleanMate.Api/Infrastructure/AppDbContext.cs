@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<ServiceOffering> ServiceOfferings => Set<ServiceOffering>();
     public DbSet<AdminAudit> AdminAudits => Set<AdminAudit>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
 
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -81,6 +82,12 @@ public class AppDbContext : DbContext
         b.Entity<SupportTicket>().Property(t => t.Response).HasMaxLength(2000);
         b.Entity<SupportTicket>().Property(t => t.CreatedAt).HasConversion(utc);
         b.Entity<SupportTicket>().Property(t => t.UpdatedAt).HasConversion(utc);
+        b.Entity<SupportMessage>().HasOne<SupportTicket>().WithMany().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportMessage>().HasOne<User>().WithMany().HasForeignKey(m => m.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<SupportMessage>().HasIndex(m => new { m.AuthorId, m.RequestId }).IsUnique();
+        b.Entity<SupportMessage>().HasIndex(m => new { m.TicketId, m.Id });
+        b.Entity<SupportMessage>().Property(m => m.Body).HasMaxLength(2000);
+        b.Entity<SupportMessage>().Property(m => m.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.CreatedAt).HasConversion(utc);
         b.Entity<Payment>().Property(p => p.PaidAt).HasConversion(utc);
         b.Entity<Payment>().HasOne(p => p.Booking).WithOne(p => p.Payment)
