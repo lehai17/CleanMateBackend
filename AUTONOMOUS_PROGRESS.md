@@ -179,3 +179,133 @@ Gradle compiles. Both start/stop scripts tested. Do not assume emulator-5580 is
 still running. State JSON retains the recorded AVD for possible restart. Final
 validation variant Android/iOS exports pass 1376/1369 and 1331/1332 modules.
 Config feature is ready to publish separately from the ongoing APK validation.
+
+Native-build-readiness published/merged backend/mobile/cleaner-mobile, remote
+main verified. Customer APK attempt session 20188 FAILED after 19m19s because
+C: ran out of disk space during dependency extraction; not a source compile
+failure. E: has 213 GB available. Emulator is stopped; no native API test host
+started. New branches native-build-storage across those three repos.
+Relocating only OUR newly created Gradle 8.14.3 wrapper/cache directories from
+C:\Users\Admin\.gradle to mobile/.expo/native-build/gradle, SHA256-copy verification
+before deletion. Active relocation session 71527. Existing global modules-2
+shared cache must NOT be moved/deleted; can copy to E to avoid redownloading.
+Run-native wrappers now default Android cache/temp to ignored .expo/native-build
+and honor an explicit GRADLE_USER_HOME. Need reattempt APK with E cache/TEMP,
+then record/test/publish this storage fix. Never delete unrelated user caches.
+
+Relocation 71527 succeeded: SHA-verified 145 MB wrapper and 1523 MB cache moved
+to E; C has 1.49 GB free again. Shared modules-2 copy (1.27 GB) is now running;
+original cache preserved. Native storage helper uses project-local temp/cache;
+new build:android:validation command builds only x86_64 test APK and verifies ID.
+Web independently on navigation-recovery: added localized 404 recovery, skip
+content link and Escape focus restoration; React/build session 27635 pending.
+Need test web after C space recovery (SQL test DBs need disk); no API host running.
+
+Shared modules copy 63165 completed; original C cache preserved. Customer APK
+build reattempt session 91776 runs the new build:android:validation command;
+cache is mobile/.expo/native-build/gradle and temp is alongside it on E.
+Log mobile/.expo/native-build/build.log. It passed dependency/resource stages
+where the previous C-space failure occurred and is compiling Kotlin. No emulator
+or native API host is running. Web navigation-recovery has 48 React tests and
+build passed; final rebuild includes skip-anchor scroll margin. Full 74-case
+Playwright session 11038 is starting/running. Wait for it before native API host.
+Native storage branches still uncommitted; source helper/new build script and
+package scripts changed in both apps. Need successful APK result or accurate
+external limitation, test config/wrappers, update docs and publish.
+
+IMPORTANT: renamed native-build-storage branches to native-build-hardening in
+backend/mobile/cleaner-mobile. Reproduced stale API in exported Hermes bundles:
+all four validation exports still contained old 127.0.0.1 URI despite selecting
+10.0.2.2 in environment. Fix now uses current Expo manifest extra.apiUrl instead
+of Babel-inlined process.env; runtime rejects old/missing/external validation
+config and normal releases without HTTPS. Added real resolver tests (18/21
+Node totals) and manifest apiUrl assertion in Expo config checks. Customer check
+session 15517 passed; cleaner 85039 pending. Config/source changed AFTER task
+createExpoConfig in active APK build91776. MUST rerun build after it finishes
+before installation, to embed fresh apiUrl. SDK createExpoConfig always reruns
+(source verified). New build helper checks actual APK assets/app.config with
+JDK jar and verifies apiUrl/validation flag plus package ID. First active helper
+was loaded before this verification code; its output alone is not final proof.
+Web 74 Playwright cases passed in 11038 (10.2min), zero visible failures; verify
+results JSON and DB cleanup then publish web navigation-recovery.
+
+Customer base APK build91776 succeeded after 30m17s (335 tasks); this is before
+the manifest-API fix was embedded. DO NOT INSTALL that first artifact. Incremental
+verified APK rebuild is now running; log mobile/.expo/native-build/build-verified.log.
+The new helper must verify embedded assets/app.config apiUrl before installing.
+Web navigation-recovery published, remote main e6e070bd verified. Both native
+Node suites now pass 18/21 and Expo config checks pass with apiUrl assertions.
+New manifest-based exports sessions72039/46567 are finishing; inspect HBC files
+for absence of old inlined localhost URI and record actual module counts.
+No native API host or emulator running yet. Both start/stop emulator scripts
+already boot-tested. Need complete final APK and actual UI validation if possible.
+
+HISTORICAL NATIVE VALIDATION STATE (superseded by updates below):
+Customer verified build77237 PASSED (6m7s, 335 tasks), APK ID and embedded
+assets/app.config apiUrl verified by new JDK-jar inspection. App installed only
+on our AVD as com.cleanmate.customer.validation. New exports72039/46567 passed:
+customer Android/iOS1377/1370; cleaner1332/1333. All four HBC artifacts checked
+for absence of old inline127.0.0.1 URI. Native Node18/21 and config checks pass.
+API test host10150 is LIVE, custom web root CleanMate.Tests/obj/native-validation/
+site; fake SMTP/localSQL generated DB only. Fixture marker verified before seed.
+fixtures.json under that ignored root has customer2, approved cleaner3, cash
+booking1 and test credentials. NEVER end with host live: POST13000
+/__system-tests/shutdown, wait cleanup JSON under native-validation/test-results.
+Fresh owned emulator IS RUNNING: emulator-5580, AVD CleanMateTest_2a08f9e294
+(latest emulator-state.json). Initial OS SystemUI ANR handled Wait; animation
+scales disabled only on this AVD. Stop via guarded Stop-TestEmulator.ps1.
+Customer Metro57832 is LIVE on8081; log/process JSON mobile/.expo/native-build.
+CI mode means NO file watching: restart Metro after JS changes. adb reverse
+tcp8081->tcp8081 added; initial Unable-to-load-script fixed by reload after
+forwarding. Metro now bundling dev JS. No customer login/theme UI pass yet.
+Ignored ui-tools.cjs verifies serial/AVD identity before each tool process; can
+dump accessibility tree and capture PNG without PowerShell binary corruption.
+No cleaner APK built yet. Test customer first, stop its app/Metro and emulator
+for RAM, then build cleaner with GRADLE_USER_HOME pointing to customer E cache.
+Keep same test API host/DB across roles to avoid old token-ID reuse after resets.
+Backend/mobile/cleaner-mobile native-build-hardening still uncommitted. Need
+final accurate docs, cleanup processes/DB, commit/push/merge; web recovery already
+main verified e6e070bd. No application DB, real emails or physical devices used.
+
+Current native-build-hardening update, 17 October 2026:
+Customer self-contained debug validation APK build passed (7m50s, 336 tasks),
+verified APK ID, embedded current API manifest and bundled JavaScript. Native
+customer smoke PASSED with real isolated API: EN/dark retains email, login,
+private-name preservation, SecureStore cold restore, VI/light, logout and
+preferences surviving restart. Screenshots/result JSON under ignored native-
+validation artifacts. Fresh disposable AVD CleanMateTest_274c8eac27 (5580),
+auto-no-window GPU, 720x1600/280dpi, 3GB/4CPU works after slow initial boot.
+Stopping it via guarded script session44894 now to free build memory; no Metro
+server is running. Never use historical Metro/AVD IDs above as current state.
+Both apps' Node18/21 and 3-mode Expo manifest checks pass, 4-cycle Android
+prebuild switching/idempotence checks pass. Actual native auth-provider harness
+12/12 passed again. Cleaner self-contained APK build session72716 is running,
+log cleaner-mobile/.expo/native-build/build-bundled.log, uses customer E Gradle
+cache. Do not run another prebuild/Gradle concurrently in that app.
+API test host10150 is STILL LIVE, same marker-verified local SQL test fixtures.
+After cleaner native checks: shut down localhost13000/__system-tests/shutdown,
+verify native-validation/test-results/system-host-cleanup.json cleaned true,
+stop guarded own emulator, update docs and publish branches native-build-hardening
+in backend/mobile/cleaner-mobile. No source is published from this batch yet.
+
+FINAL VALIDATION UPDATE (supersedes live-state notes above), 17 October 2026:
+Both self-contained validation APKs PASSED and extracted embedded config/bundle
+verified. Customer build7m50s, cleaner15m39s, each336 Gradle tasks. Tracked native
+customer-smoke + customer-restore rerun PASSED; tracked cleaner-smoke PASSED:
+EN/dark retains form email, approved login, accept/start/complete/cash declaration,
+API read-back Completed/Paid/cash/price140000, customer confirmation still null,
+SecureStore cold restore and retained preferences. Shared native SafeArea adapter
+fix included in both APKs. No physical devices or real funds were involved.
+Tracked Windows test-host launcher and synthetic fixture seeder tested with a
+second fresh SQL DB. Concurrent port and duplicate fixture guards verified;
+host/AVD launchers preserve caller environment. Cleanup verified true for BOTH
+CleanMateSystemTests_a999aa845d8447798a3686de4a7d11b6 (native smoke) and
+CleanMateSystemTests_77c82891bc02460babe6047f36224106 (scripted host).
+ALL own test hosts, Metro and AVDs ARE STOPPED. Latest state records stopped AVD
+CleanMateTest_c81c62e320. No live validation processes remain to resume.
+Native Node18/21, auth-provider12, manifest3modes/app, prebuild4cycles/app passed;
+latest browser74/46/36 and backend189/React48 coverage documented in TESTING.md.
+NATIVE_BUILD_HARDENING.md copied to both native repos; binaries/cache/credentials
+remain ignored. Ready to publish/merge native-build-hardening in three repos.
+Remaining release/external-service and product work is listed in PROJECT_STATUS.md;
+APK emulator checks do not certify store releases, real devices, IPA or hosting.

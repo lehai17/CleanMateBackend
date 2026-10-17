@@ -32,7 +32,7 @@ export function themedStyle(style, dark, kind) {
   return result;
 }
 function primitive(name) {
-  const Component = Native[name];
+  const Component = name === 'SafeAreaView' ? PreferenceSafeArea : Native[name];
   return forwardRef(function LocalizedPrimitive({ children, style, ...props }, ref) {
     const { language:locale, resolvedTheme, palette } = useUiPreferences();
     const dark = resolvedTheme === 'dark';
