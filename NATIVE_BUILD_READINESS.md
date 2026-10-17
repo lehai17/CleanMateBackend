@@ -54,8 +54,9 @@ not used by that script. Logs and generated AVD data remain under
 ## Validation status
 
 Native config introspection and both variants' guards passed for both apps.
-Customer/cleaner Node suites passed 12/15. Prebuild completed for both Android
+Customer/cleaner Node suites passed 18/21. Prebuild completed for both Android
 validation variants. Android/iOS validation bundle exports pass for both apps
-(1376/1369 customer modules; 1331/1332 cleaner modules). The isolated AOSP emulator
-booted and its guarded shutdown script was exercised successfully. APK compilation
-is still in progress; no APK installation or native UI pass is claimed yet.
+(1377/1370 customer modules; 1332/1333 cleaner modules). The isolated AOSP emulator
+booted and its guarded shutdown script was exercised successfully. Current APK
+compilation and native UI results, self-contained validation builds and API cache
+regressions are described in [NATIVE_BUILD_HARDENING.md](NATIVE_BUILD_HARDENING.md).

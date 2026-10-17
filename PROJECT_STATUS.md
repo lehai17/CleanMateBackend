@@ -9,8 +9,10 @@ không xác nhận trạng thái hosting, tài khoản dịch vụ hoặc bản 
   tablet, liên kết dịch vụ/hỗ trợ hoạt động và chính sách đồng bộ URL/Back/Reload.
   Xem [PUBLIC_NAVIGATION.md](PUBLIC_NAVIGATION.md).
 - Cấu hình native production/validation riêng, kiểm tra package/deep link, HTTP
-  cho API test và sáng/tối tự động. Đây chưa phải xác nhận APK/IPA hay UI thiết bị.
-  Xem [NATIVE_BUILD_READINESS.md](NATIVE_BUILD_READINESS.md).
+  cho API test và sáng/tối tự động. Đã build APK validation khách/cleaner; kiểm tra
+  đăng nhập, ngôn ngữ/giao diện, khôi phục phiên và luồng ca/tiền mặt của cleaner
+  trên máy ảo Android. Bản phát hành/IPA vẫn cần kiểm tra riêng.
+  Xem [NATIVE_BUILD_HARDENING.md](NATIVE_BUILD_HARDENING.md).
 - Đã cập nhật dependency tương thích; NuGet và runtime web không báo advisory,
   các cảnh báo build/native còn lại được liệt kê trong
   [DEPENDENCY_HARDENING.md](DEPENDENCY_HARDENING.md).
@@ -74,8 +76,8 @@ Tiền mặt được khách trả trực tiếp cho cleaner sau ca. Số tiền
 5. **Dọn luồng cũ:** thống nhất khách sử dụng app/web khách và cleaner sử dụng
    hai dự án riêng; rà các màn hình cleaner cũ còn nằm trong ứng dụng khách.
 6. **Phát hành:** kiểm thử UI trên điện thoại thật, tạo bản cài, xác nhận API
-   HTTPS trên mạng thật, logging và thử phục hồi backup. Export Android hiện
-   tại chỉ kiểm tra bundle, chưa phải APK/IPA hay kiểm thử thiết bị.
+   HTTPS trên mạng thật, logging và thử phục hồi backup. APK validation/máy ảo
+   phục vụ kiểm thử nội bộ; chưa xác nhận bản phát hành, IPA hoặc điện thoại thật.
 
 ## Hỗ trợ đơn hàng: phạm vi bản hiện tại
 
